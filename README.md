@@ -14,5 +14,3 @@ Use the `skills-sync` skill to manage synchronization:
 
 ## Skills
 
-- `hf-storage-estimate`
-- `skills-sync`
