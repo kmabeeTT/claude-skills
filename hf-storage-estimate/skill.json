@@ -1,0 +1,15 @@
+{
+  "name": "hf-storage-estimate",
+  "version": "1.0.0",
+  "description": "Estimate HuggingFace model storage requirements from test collection logs",
+  "prompt": "Analyze {{log_file}} and estimate the total HuggingFace storage required for all models listed.\n\nParse the log file to extract model identifiers, estimate storage for each model based on parameter counts, and generate a comprehensive report including:\n- Total storage estimate\n- Breakdown by model family/category\n- List of largest models\n- CSV export for spreadsheet analysis\n- Summary report in markdown\n\nThe log file typically contains pytest test paths with model names like:\n- test_all_models_torch[model_family/variant-single_device-inference]\n- Or other formats with model identifiers\n\nGenerate reports in the same directory as the log file with prefix matching the log filename.",
+  "author": "Claude Code User",
+  "tags": ["analysis", "huggingface", "storage", "models", "testing"],
+  "parameters": [
+    {
+      "name": "log_file",
+      "description": "Path to the log file containing model test collection output",
+      "required": true
+    }
+  ]
+}

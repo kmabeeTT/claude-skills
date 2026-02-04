@@ -1,0 +1,20 @@
+{
+  "name": "skills-sync",
+  "version": "1.0.0",
+  "description": "Sync Claude Code skills with GitHub repository",
+  "prompt": "Sync Claude Code skills with Git repository.\n\nAction: {{action}}\n- pull: Pull latest changes from GitHub\n- push: Commit and push local changes to GitHub\n- status: Show git status\n- setup: Initialize git repository and setup sync\n\nCommit message (for push): {{message}}\n\nThis skill helps maintain a synchronized collection of skills across multiple machines using Git.",
+  "author": "Claude Code User",
+  "tags": ["git", "sync", "skills", "automation"],
+  "parameters": [
+    {
+      "name": "action",
+      "description": "Action to perform: pull, push, status, or setup",
+      "required": true
+    },
+    {
+      "name": "message",
+      "description": "Commit message (required for push action)",
+      "required": false
+    }
+  ]
+}
