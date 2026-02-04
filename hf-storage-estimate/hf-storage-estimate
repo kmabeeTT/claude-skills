@@ -1,0 +1,3 @@
+#!/bin/bash
+# Wrapper script for hf-storage-estimate
+exec "$(dirname "$0")/estimate_storage.py" "$@"

@@ -1,0 +1,3 @@
+#!/bin/bash
+# Wrapper script for skills-sync - can be called directly or aliased
+exec "$(dirname "$0")/sync.sh" "$@"
