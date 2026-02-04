@@ -1,183 +1,160 @@
-# My Claude Code Tools
+# My Claude Code Skills
 
-Personal collection of scripts and tools for Claude Code, synchronized across machines using Git.
+Personal collection of Claude Code skills, synchronized across machines using Git.
 
-## Quick Setup
+## ✅ Real Claude Code Skills
 
-### 1. Set up shell aliases (one-time)
-
-```bash
-~/.claude/skills/setup-aliases.sh
-source ~/.bashrc  # or ~/.zshrc
-```
-
-### 2. Initialize Git sync (on first machine)
-
-```bash
-cd ~/.claude/skills/skills-sync
-./setup-skills-sync.sh
-```
-
-## Available Tools
+These are proper Claude Code skills that Claude will automatically use based on context!
 
 ### skills-sync
-**Git synchronization for your tools**
+**Automatic Git synchronization**
 
-```bash
-# Check what's changed
-skills-sync status
+Claude will automatically use this skill when you mention syncing, pushing, or pulling skills.
 
-# Pull updates from other machines
-skills-sync pull
+**Example phrases:**
+- "Sync my skills"
+- "Push my skills to GitHub"
+- "Pull latest skills"
+- "Check skill status"
 
-# Push your changes
-skills-sync push "Updated something"
-
-# Or use shortcuts
-skills-status
-skills-pull
-skills-push "Your message"
-```
-
-📖 [Full Documentation](skills-sync/SKILLS_SYNC_SOLUTION.md)
+📖 [Documentation](skills-sync/SKILL.md)
 
 ### hf-storage-estimate
-**HuggingFace model storage estimation**
+**Automatic HuggingFace storage estimation**
+
+Claude will automatically use this skill when you mention storage estimation or analyzing model logs.
+
+**Example phrases:**
+- "Estimate storage for this log file"
+- "How much disk space do I need?"
+- "Analyze models in entry_1_collect.log"
+
+📖 [Documentation](hf-storage-estimate/SKILL.md)
+
+## How Skills Work
+
+Skills use `SKILL.md` files with YAML frontmatter:
+
+```markdown
+---
+name: skill-name
+description: When Claude should use this skill...
+version: 1.0.0
+---
+
+# Skill Content
+Instructions and guidance for Claude...
+```
+
+## Setup
+
+### Initial Setup (Primary Machine)
 
 ```bash
-# Analyze a log file
-hf-storage-estimate /path/to/logfile.log
-
-# Example
-hf-storage-estimate test_matrix_analysis_*/entry_1_collect.log
-```
-
-Generates comprehensive reports with storage estimates, breakdowns, and CSV exports.
-
-📖 [Documentation](hf-storage-estimate/README.md)
-
-## How It Works
-
-### Architecture
-
-```
-GitHub Repository
-    ↓
-~/code/claude-skills/  ← Git repository (when using setup-skills-sync.sh)
-    ↓ (or symlink)
-~/.claude/skills/      ← Scripts and tools live here
-```
-
-### Daily Workflow
-
-**On Machine A:**
-```bash
-# Edit or add tools
-vim ~/.claude/skills/my-script.sh
-
-# Push changes
-skills-push "Added new feature"
-```
-
-**On Machine B:**
-```bash
-# Get updates
-skills-pull
-```
-
-## Multi-Machine Setup
-
-### Primary Machine
-```bash
+# Run interactive setup
 cd ~/.claude/skills/skills-sync
 ./setup-skills-sync.sh
 # Choose option 1, follow prompts
 ```
 
 ### Additional Machines
-```bash
-# Option 1: Use setup script
-./setup-skills-sync.sh  # Choose option 2
 
-# Option 2: Manual
+```bash
+# Clone and symlink
 git clone https://github.com/YOUR_USERNAME/claude-skills.git ~/code/claude-skills
 ln -s ~/code/claude-skills ~/.claude/skills
-~/.claude/skills/setup-aliases.sh
-source ~/.bashrc
 ```
 
-## Adding Your Own Tools
+## Git Sync Workflow
+
+Once set up, skills are automatically synced via Git:
+
+**On any machine:**
+1. Claude modifies skills (or you edit them)
+2. Say: "Push my skills" → Claude runs the sync
+3. On other machines, say: "Pull latest skills"
+
+## Architecture
+
+```
+GitHub Repository
+    ↓
+~/code/claude-skills/  ← Git repository
+    ↓ (symlink)
+~/.claude/skills/      ← Claude Code loads skills from here
+```
+
+## Creating New Skills
 
 ```bash
-# Create a new script
-cat > ~/.claude/skills/my-tool.sh << 'SCRIPT_EOF'
-#!/bin/bash
-echo "Hello from my tool!"
-SCRIPT_EOF
+mkdir -p ~/.claude/skills/my-new-skill
 
-chmod +x ~/.claude/skills/my-tool.sh
+cat > ~/.claude/skills/my-new-skill/SKILL.md << 'SKILL_EOF'
+---
+name: my-new-skill
+description: This skill should be used when the user asks to "trigger phrase" or discusses relevant-topic.
+version: 1.0.0
+---
 
-# Add alias (edit ~/.bashrc)
-echo 'alias my-tool="$HOME/.claude/skills/my-tool.sh"' >> ~/.bashrc
-source ~/.bashrc
+# My New Skill
 
-# Use it
-my-tool
+Instructions for Claude on how to handle this skill...
+SKILL_EOF
 
-# Sync to other machines
-skills-push "Added my-tool"
+# Claude Code will auto-detect the new skill!
 ```
+
+Then say: "Push my skills" and Claude will sync it to GitHub.
 
 ## Directory Structure
 
 ```
 ~/.claude/skills/
-├── README.md                      # This file
-├── setup-aliases.sh               # Shell alias setup
-├── skills-sync/                   # Git sync tool
-│   ├── sync.sh                    # Main script
-│   ├── setup-skills-sync.sh       # Setup wizard
-│   └── README.md
-├── hf-storage-estimate/           # Storage estimation tool
-│   ├── estimate_storage.py
-│   └── README.md
-└── (your other tools)/
+├── README.md                    # This file
+├── setup-aliases.sh             # Optional shell aliases
+├── skills-sync/                 # Git sync skill
+│   ├── SKILL.md                 # Skill definition
+│   ├── sync.sh                  # Implementation
+│   └── setup-skills-sync.sh     # Setup wizard
+└── hf-storage-estimate/         # Storage estimation skill
+    ├── SKILL.md                 # Skill definition
+    ├── estimate_storage.py      # Implementation
+    └── README.md               # Additional docs
 ```
+
+## Benefits
+
+✅ **Automatic activation** - Claude uses skills based on context
+✅ **Git-backed** - Version control and sync across machines
+✅ **Claude-editable** - Claude can modify skills directly
+✅ **No special invocation** - Just describe what you want
+✅ **Shareable** - Others can clone your skills repo
+
+## Tips
+
+- **Testing skills**: Say something that matches the skill's description triggers
+- **Updating skills**: Edit `SKILL.md` files, Claude will use the updated version
+- **Sync often**: Push/pull skills regularly to keep machines in sync
+- **Clear descriptions**: Skill descriptions determine when Claude activates them
 
 ## Troubleshooting
 
-### "Command not found"
+### Skill not activating
+
+Check the `description` field in `SKILL.md` - it needs phrases that match what users say.
+
+### Skills not syncing
 
 ```bash
-# Re-run alias setup
-~/.claude/skills/setup-aliases.sh
-source ~/.bashrc  # or ~/.zshrc
-```
-
-### Git sync not working
-
-```bash
-# Check git status
 cd ~/.claude/skills
-git status
-
-# Or use the tool
-skills-status
+git status  # Check if it's a git repo
+ls -la ~/.claude/skills  # Check if symlink is valid
 ```
 
-## Why This Approach?
-
-This uses shell scripts and aliases instead of formal Claude Code skills because:
-
-✅ Works immediately
-✅ Easy to understand and modify
-✅ Git-syncable across machines
-✅ Flexible - any script works
-✅ No special format required
-
-Claude Code can still create and modify these scripts - they're just regular files!
+Or just say: "Check skill status" and Claude will use the skills-sync skill!
 
 ---
 
-**Synced with**: Git/GitHub
-**Invoked via**: Shell aliases
+**Format**: `SKILL.md` with YAML frontmatter
+**Synced via**: Git/GitHub
+**Activated**: Automatically by Claude based on context
