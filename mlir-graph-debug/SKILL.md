@@ -20,33 +20,21 @@ Analyze the provided log file to:
 
 ### Step 1: Extract Graphs and Find Failure
 
-**Extract MLIR graphs using the extraction script:**
+**IMPORTANT**: Always use the extraction script - do NOT fall back to manual awk extraction.
+
+**Extract MLIR graphs:**
 ```bash
-python ../scripts/extract_mlir_graphs.py <log_file> --type ttir
+python3 /localdev/kmabee/scripts/extract_mlir_graphs.py <log_file> --type ttir
 ```
 
-**If the script fails, use manual extraction with awk:**
-```bash
-# Extract graph N (e.g., N=17)
-awk '/MLIR Module ttir:/{if(++count==N) flag=1; next}
-     /END OF MLIR MODULE|MLIR Module ttnn:/{flag=0}
-     flag' log_file > graph_N_ttir.mlir
-```
+**Important**: Use `python3` (not `python`) - the script requires Python 3.6+ for f-string support.
 
-**CRITICAL: Validate extracted MLIR files:**
-After extraction, always verify:
-1. First line should start with valid MLIR (`#loc`, `module @`, etc.) - NOT log prefixes
-2. Last line should be MLIR code or closing brace - NOT "END OF MLIR MODULE"
-3. No log timestamps or metadata mixed in
+The script outputs to `/tmp/graph_N_ttir.mlir` where N is the graph number. The extracted files are clean MLIR with no log prefixes.
 
-**Cleanup if needed:**
-```bash
-# Remove log prefix from first line if present
-tail -n +2 graph.mlir > graph_clean.mlir
-
-# Remove trailing log separators
-head -n -1 graph.mlir > graph_clean.mlir
-```
+**If the script fails:**
+1. Check you're using `python3` (not `python`)
+2. Verify the log file path is correct
+3. Read the error message and fix any issues with the script
 
 **Find the failure location:**
 ```bash
@@ -57,6 +45,12 @@ grep -n "FATAL\|TT_FATAL\|TT_THROW\|critical.*TT_" <log_file>
 - "Starting execution of program" lines
 - "MLIR Module ttir:" lines
 - The failure line number
+
+**Verify extracted files:**
+After extraction, confirm the files are clean:
+- Should start with valid MLIR (`#loc`, `module @`, etc.)
+- Should NOT contain log prefixes or "END OF MLIR MODULE" markers
+- The extraction script handles this correctly
 
 ### Step 2: Identify the Problematic Operation
 
@@ -245,10 +239,15 @@ Use `generate_repro_script()` to create a complete script:
 
 **Directory structure:**
 - Repro directory: `<model>_<operation>_YYYY-MM-DD/`
-  - TTIR extracted: `<model>_graph_<N>_ttir.mlir`
-  - TTNN compiled: `<model>_graph_<N>_ttnn.mlir`
-  - Flatbuffer: `<model>_graph_<N>.ttnn`
-  - Execution log: `<model>_graph_<N>_ttrt_run.log`
+  - `ANALYSIS.md` - Detailed failure analysis
+  - `SIMPLE_REPRO.md` - Copy-paste commands (consistent log filenames)
+  - `<model>_graph_<N>_ttir.mlir.txt` - Extracted TTIR graph
+  - `<model>_<operation>_repro.sh` - Full automated repro script
+  - `create_gist.sh` - Script to upload repro files to GitHub gist
+  - (Generated after running repro script):
+    - `<model>_graph_<N>_ttnn.mlir` - TTNN compiled
+    - `<model>_graph_<N>.ttnn` - Flatbuffer
+    - `<model>_graph_<N>_ttrt_run.log` - Execution log
 
 Example: `opt_125m_ttnn_sort_2026-02-05/`
 
@@ -261,8 +260,14 @@ When the user invokes this skill with a log file, you should:
 3. **Map to graph**: Correlate the failure with the graph that was executing
 4. **Analyze the graph**: Read the extracted MLIR file and trace the data flow
 5. **Generate repro outputs**:
-   - Simple copy-paste commands (for GitHub issues)
-   - Full bash script (for automated repro)
-6. **Report findings**: Generate a clear, structured analysis report
+   - `ANALYSIS.md` - Detailed failure analysis with data flow
+   - `SIMPLE_REPRO.md` - Copy-paste commands (using `generate_simple_repro_md()`)
+   - `<model>_<operation>_repro.sh` - Full automated bash script
+   - `create_gist.sh` - Script to upload files to GitHub gist
+6. **Report findings**: Clear summary with all artifacts ready
+
+**IMPORTANT**: Use the helper functions:
+- `generate_simple_repro_md()` for SIMPLE_REPRO.md (ensures log filename consistency)
+- `generate_gist_script()` for create_gist.sh (includes TTIR, log if exists, SIMPLE_REPRO.md)
 
 The output should be immediately actionable for the user to understand the bug, reproduce it, and file issues.

@@ -155,6 +155,16 @@ def generate_repro_script(
 
 set -e  # Exit on error
 
+# Enable aliases in non-interactive shell
+shopt -s expand_aliases
+
+# Load user's shell configuration to get aliases (ttrt, etc.)
+if [ -f ~/.bashrc ]; then
+    source ~/.bashrc
+elif [ -f ~/.bash_profile ]; then
+    source ~/.bash_profile
+fi
+
 MODEL="{model_name}"
 GRAPH_NUM={graph_num}
 DATE=$(date +%Y-%m-%d)
@@ -209,11 +219,11 @@ def generate_simple_repro_commands(
     No variables, just plain commands.
     """
 
-    # Create simple file names
+    # Create simple file names - must match what the repro script generates
     ttir_input = f"./{model_name}_graph_{graph_num}_ttir.mlir.txt"
     ttnn_output = f"{model_name}_ttnn.mlir"
     flatbuffer_output = "out.ttnn"
-    log_output = f"{model_name}_ttrt_run.log"
+    log_output = f"{model_name}_graph_{graph_num}_ttrt_run.log"  # Fixed: match repro script
 
     # Build pipeline flags
     pipeline_flags = f"system-desc-path=ttrt-artifacts/system_desc.ttsys"
@@ -225,6 +235,97 @@ ttmlir-translate --ttnn-to-flatbuffer -o {flatbuffer_output} {ttnn_output}
 ttrt run {flatbuffer_output} |& tee {log_output}"""
 
     return commands
+
+
+def generate_simple_repro_md(
+    model_name: str,
+    graph_num: int,
+    additional_flags: str = ""
+) -> str:
+    """
+    Generate the complete SIMPLE_REPRO.md file content.
+    """
+
+    commands = generate_simple_repro_commands(model_name, graph_num, additional_flags)
+    log_output = f"{model_name}_graph_{graph_num}_ttrt_run.log"
+
+    md = f"""# Simple Repro Commands
+
+These commands reproduce the ttnn.sort f32 type mismatch failure.
+
+## Prerequisites
+
+Ensure you have:
+- `{model_name}_graph_{graph_num}_ttir.mlir.txt` (already in this directory)
+- `ttrt-artifacts/system_desc.ttsys` (in parent directory)
+
+## Commands
+
+```bash
+{commands}
+```
+
+## Expected Failure
+
+```
+TT_FATAL: Input tensor data type must be BFLOAT16 or UINT16, got DataType::FLOAT32
+```
+
+## What Gets Generated
+
+After running the commands:
+- `{model_name}_ttnn.mlir` - TTNN dialect output from ttmlir-opt
+- `out.ttnn` - Flatbuffer binary
+- `{log_output}` - Execution log with FATAL error
+
+## Check for Failure
+
+```bash
+grep FATAL {log_output}
+```
+"""
+    return md
+
+
+def generate_gist_script(
+    model_name: str,
+    graph_num: int,
+    operation: str = "ttnn_sort"
+) -> str:
+    """
+    Generate a shell script to create a GitHub gist with repro files.
+    """
+
+    ttir_file = f"{model_name}_graph_{graph_num}_ttir.mlir.txt"
+    log_file = f"{model_name}_graph_{graph_num}_ttrt_run.log"
+
+    script = f"""#!/bin/bash
+# Create GitHub gist with repro files for {model_name} {operation} failure
+
+set -e
+
+echo "Creating GitHub gist..."
+
+# Check if log file exists (only if repro script was run)
+if [ -f "{log_file}" ]; then
+    echo "  - Including ttrt run log: {log_file}"
+    LOG_ARG="{log_file}"
+else
+    echo "  - Skipping ttrt run log (file not found, run repro script first to generate it)"
+    LOG_ARG=""
+fi
+
+# Create the gist
+gh gist create -p \\
+    -d "{model_name} {operation} f32 type mismatch repro" \\
+    SIMPLE_REPRO.md \\
+    {ttir_file} \\
+    $LOG_ARG
+
+echo ""
+echo "✅ Gist created! Copy the URL above and paste it into your GitHub issue."
+"""
+    return script
 
 
 def generate_github_issue(
