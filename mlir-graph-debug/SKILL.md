@@ -50,7 +50,7 @@ In the extracted graph MLIR file:
 3. Identify type conversions, operations, and where incorrect types originate
 4. Look for missing conversions or incorrect operation parameters
 
-### Step 4: Generate Analysis Report
+### Step 4: Generate Analysis Report and Repro Script
 
 Create a markdown report with:
 
@@ -75,7 +75,57 @@ Create a markdown report with:
 ## Repro
 - Command: <how to reproduce>
 - Files: <relevant files>
+- Script: <repro_script.sh>
 ```
+
+**IMPORTANT: Create a repro script** that includes:
+1. Extract the TTIR graph from the log to a .txt file
+2. Commands to compile TTIR → TTNN → Flatbuffer
+3. Commands to execute with ttrt
+4. All in a single executable .sh file
+
+Example repro script structure:
+```bash
+#!/bin/bash
+# Repro script for <model>_<operation>_failure
+
+set -e  # Exit on error
+
+MODEL="<model_name>"
+GRAPH_NUM=<N>
+DATE=$(date +%Y-%m-%d)
+REPRO_DIR="${MODEL}_<operation>_${DATE}"
+
+echo "=== Creating repro directory: ${REPRO_DIR} ==="
+mkdir -p "${REPRO_DIR}"
+cd "${REPRO_DIR}"
+
+echo "=== Extracting TTIR graph ${GRAPH_NUM} ==="
+python /localdev/kmabee/scripts/extract_mlir_graphs.py ../<log_file> --type ttir
+
+echo "=== Copying TTIR graph ==="
+cp /tmp/graph_${GRAPH_NUM}_ttir.mlir ${MODEL}_graph_${GRAPH_NUM}_ttir.mlir
+
+echo "=== Compiling TTIR to TTNN ==="
+ttmlir-opt \
+  --ttir-to-ttnn-backend-pipeline="system-desc-path=../ttrt-artifacts/system_desc.ttsys" \
+  -o ${MODEL}_graph_${GRAPH_NUM}_ttnn.mlir \
+  ${MODEL}_graph_${GRAPH_NUM}_ttir.mlir
+
+echo "=== Translating TTNN to Flatbuffer ==="
+ttmlir-translate \
+  --ttnn-to-flatbuffer \
+  -o ${MODEL}_graph_${GRAPH_NUM}.ttnn \
+  ${MODEL}_graph_${GRAPH_NUM}_ttnn.mlir
+
+echo "=== Running with ttrt ==="
+ttrt run ${MODEL}_graph_${GRAPH_NUM}.ttnn |& tee ${MODEL}_graph_${GRAPH_NUM}_ttrt_run.log
+
+echo "=== Repro complete ==="
+echo "All artifacts in: ${REPRO_DIR}/"
+```
+
+Save the TTIR graph content to a separate file for convenience.
 
 ### Step 5: Optional GitHub Issue Creation
 
@@ -136,6 +186,49 @@ Always provide:
 
 Be concise but thorough. Focus on actionable insights.
 
+## Repro Generation
+
+Generate TWO types of repro outputs:
+
+### 1. Simple Copy-Paste Commands (for GitHub issues)
+Use `generate_simple_repro_commands()` to create hardcoded, no-variable commands:
+
+```bash
+ttmlir-opt --ttir-to-ttnn-backend-pipeline="system-desc-path=ttrt-artifacts/system_desc.ttsys" -o opt125m_ttnn.mlir ./opt125m_graph_17_ttir.mlir.txt
+ttmlir-translate --ttnn-to-flatbuffer -o out.ttnn opt125m_ttnn.mlir
+ttrt run out.ttnn |& tee opt125m_ttrt_run.log
+```
+
+**Key features:**
+- No variables (`${VAR}`) - just plain text
+- Simple filenames: `out.ttnn`, `{model}_ttnn.mlir`
+- TTIR input has `.txt` extension for easy viewing
+- Easy to copy-paste into GitHub issues
+
+### 2. Full Bash Script (for automated repro)
+Use `generate_repro_script()` to create a complete script:
+
+1. **Name the script**: `<model_name>_<operation>_repro.sh`
+2. **Make it self-contained**: Extract TTIR from log in the script
+3. **Include all steps**: TTIR → TTNN → Flatbuffer → ttrt run
+4. **Add error checking**: Use `set -e` to exit on errors
+5. **Log output**: Tee output to a log file
+6. **Document artifacts**: List all generated files at the end
+
+**Common pipeline flags:**
+- `system-desc-path=ttrt-artifacts/system_desc.ttsys` - System description
+- `experimental-bfp8-weights=true` - For models with BFP8 weights
+- Add other flags as needed based on the test configuration
+
+**Directory structure:**
+- Repro directory: `<model>_<operation>_YYYY-MM-DD/`
+  - TTIR extracted: `<model>_graph_<N>_ttir.mlir`
+  - TTNN compiled: `<model>_graph_<N>_ttnn.mlir`
+  - Flatbuffer: `<model>_graph_<N>.ttnn`
+  - Execution log: `<model>_graph_<N>_ttrt_run.log`
+
+Example: `opt_125m_ttnn_sort_2026-02-05/`
+
 ## Example Usage
 
 When the user invokes this skill with a log file, you should:
@@ -144,6 +237,9 @@ When the user invokes this skill with a log file, you should:
 2. **Find failures**: Grep for FATAL/critical errors and identify line numbers
 3. **Map to graph**: Correlate the failure with the graph that was executing
 4. **Analyze the graph**: Read the extracted MLIR file and trace the data flow
-5. **Report findings**: Generate a clear, structured analysis report
+5. **Generate repro outputs**:
+   - Simple copy-paste commands (for GitHub issues)
+   - Full bash script (for automated repro)
+6. **Report findings**: Generate a clear, structured analysis report
 
-The output should be immediately actionable for the user to understand the bug and how to fix it.
+The output should be immediately actionable for the user to understand the bug, reproduce it, and file issues.

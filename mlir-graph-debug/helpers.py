@@ -140,12 +140,100 @@ def map_failure_to_graph(
     return None
 
 
+def generate_repro_script(
+    model_name: str,
+    graph_num: int,
+    log_file: str,
+    operation: str,
+    additional_flags: str = ""
+) -> str:
+    """Generate a bash repro script for the failure."""
+
+    script = f"""#!/bin/bash
+# Repro script for {model_name} {operation} failure (Graph {graph_num})
+# Generated from: {log_file}
+
+set -e  # Exit on error
+
+MODEL="{model_name}"
+GRAPH_NUM={graph_num}
+DATE=$(date +%Y-%m-%d)
+REPRO_DIR="${{MODEL}}_{operation}_${{DATE}}"
+
+echo "=== Creating repro directory: ${{REPRO_DIR}} ==="
+mkdir -p "${{REPRO_DIR}}"
+cd "${{REPRO_DIR}}"
+
+echo "=== Extracting TTIR graph ${{GRAPH_NUM}} from {log_file} ==="
+python /localdev/kmabee/scripts/extract_mlir_graphs.py ../{log_file} --type ttir
+
+echo "=== Copying TTIR graph to repro directory ==="
+cp /tmp/graph_${{GRAPH_NUM}}_ttir.mlir ${{MODEL}}_graph_${{GRAPH_NUM}}_ttir.mlir
+
+echo "=== Compiling TTIR to TTNN ==="
+ttmlir-opt \\
+  --ttir-to-ttnn-backend-pipeline="system-desc-path=../ttrt-artifacts/system_desc.ttsys{additional_flags}" \\
+  -o ${{MODEL}}_graph_${{GRAPH_NUM}}_ttnn.mlir \\
+  ${{MODEL}}_graph_${{GRAPH_NUM}}_ttir.mlir
+
+echo "=== Translating TTNN to Flatbuffer ==="
+ttmlir-translate \\
+  --ttnn-to-flatbuffer \\
+  -o ${{MODEL}}_graph_${{GRAPH_NUM}}.ttnn \\
+  ${{MODEL}}_graph_${{GRAPH_NUM}}_ttnn.mlir
+
+echo "=== Running with ttrt ==="
+ttrt run ${{MODEL}}_graph_${{GRAPH_NUM}}.ttnn |& tee ${{MODEL}}_graph_${{GRAPH_NUM}}_ttrt_run.log
+
+echo ""
+echo "=== Repro complete ==="
+echo "All artifacts in: ${{REPRO_DIR}}/"
+echo "Generated files:"
+echo "  - ${{MODEL}}_graph_${{GRAPH_NUM}}_ttir.mlir (TTIR input)"
+echo "  - ${{MODEL}}_graph_${{GRAPH_NUM}}_ttnn.mlir (TTNN compiled)"
+echo "  - ${{MODEL}}_graph_${{GRAPH_NUM}}.ttnn (Flatbuffer)"
+echo "  - ${{MODEL}}_graph_${{GRAPH_NUM}}_ttrt_run.log (Execution log)"
+echo ""
+echo "Check the log for the failure: grep FATAL ${{MODEL}}_graph_${{GRAPH_NUM}}_ttrt_run.log"
+"""
+    return script
+
+
+def generate_simple_repro_commands(
+    model_name: str,
+    graph_num: int,
+    additional_flags: str = ""
+) -> str:
+    """
+    Generate simple, hardcoded repro commands for copy-paste into GitHub issues.
+    No variables, just plain commands.
+    """
+
+    # Create simple file names
+    ttir_input = f"./{model_name}_graph_{graph_num}_ttir.mlir.txt"
+    ttnn_output = f"{model_name}_ttnn.mlir"
+    flatbuffer_output = "out.ttnn"
+    log_output = f"{model_name}_ttrt_run.log"
+
+    # Build pipeline flags
+    pipeline_flags = f"system-desc-path=ttrt-artifacts/system_desc.ttsys"
+    if additional_flags:
+        pipeline_flags = f"{additional_flags} {pipeline_flags}"
+
+    commands = f"""ttmlir-opt --ttir-to-ttnn-backend-pipeline="{pipeline_flags}" -o {ttnn_output} {ttir_input}
+ttmlir-translate --ttnn-to-flatbuffer -o {flatbuffer_output} {ttnn_output}
+ttrt run {flatbuffer_output} |& tee {log_output}"""
+
+    return commands
+
+
 def generate_github_issue(
     title: str,
     summary: dict,
     data_flow: str,
     fix_recommendation: str,
     repro_command: str = "",
+    repro_script: str = "",
     log_snippet: str = ""
 ) -> str:
     """Generate a GitHub issue markdown template."""
@@ -176,6 +264,9 @@ The operation fails at runtime with a type mismatch error.
 
     if repro_command:
         issue += f"```bash\n{repro_command}\n```\n\n"
+
+    if repro_script:
+        issue += f"### Repro Script\n\nSee attached `{repro_script}` for automated reproduction.\n\n"
 
     issue += "### Logs\n"
     if log_snippet:

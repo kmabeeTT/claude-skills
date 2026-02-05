@@ -15,8 +15,10 @@
 6. Recommends inserting a typecast
 
 **Expected Output:**
+
+1. **Analysis report** (`opt_125m_ttnn_sort_type_mismatch_analysis.md`):
 ```markdown
-# MLIR Graph Failure Analysis
+# MLIR Graph Failure Analysis - OPT-125M ttnn.sort Type Mismatch
 
 ## Summary
 - Graph: 17
@@ -35,6 +37,62 @@ Result: f32 tensor → ttnn.sort (expects bf16/ui16)
 Insert typecast before sort:
   %35_bf16 = ttnn.typecast(%35) bf16
   ttnn.sort(%35_bf16) ...
+
+## Repro Commands (copy-paste ready)
+```bash
+ttmlir-opt --ttir-to-ttnn-backend-pipeline="system-desc-path=ttrt-artifacts/system_desc.ttsys" -o opt125m_ttnn.mlir ./opt125m_graph_17_ttir.mlir.txt
+ttmlir-translate --ttnn-to-flatbuffer -o out.ttnn opt125m_ttnn.mlir
+ttrt run out.ttnn |& tee opt125m_ttrt_run.log
+```
+
+See `opt_125m_ttnn_sort_repro.sh` for full automated script.
+```
+
+2. **Repro script** (`opt_125m_ttnn_sort_repro.sh`):
+```bash
+#!/bin/bash
+# Repro script for OPT-125M ttnn.sort failure (Graph 17)
+
+set -e
+
+MODEL="opt_125m"
+GRAPH_NUM=17
+DATE=$(date +%Y-%m-%d)
+REPRO_DIR="${MODEL}_ttnn_sort_${DATE}"
+
+echo "=== Creating repro directory: ${REPRO_DIR} ==="
+mkdir -p "${REPRO_DIR}" && cd "${REPRO_DIR}"
+
+echo "=== Extracting TTIR graph ${GRAPH_NUM} ==="
+python /localdev/kmabee/scripts/extract_mlir_graphs.py ../test.log --type ttir
+cp /tmp/graph_${GRAPH_NUM}_ttir.mlir ${MODEL}_graph_${GRAPH_NUM}_ttir.mlir
+
+echo "=== Compiling TTIR to TTNN ==="
+ttmlir-opt \
+  --ttir-to-ttnn-backend-pipeline="system-desc-path=../ttrt-artifacts/system_desc.ttsys" \
+  -o ${MODEL}_graph_${GRAPH_NUM}_ttnn.mlir \
+  ${MODEL}_graph_${GRAPH_NUM}_ttir.mlir
+
+echo "=== Translating TTNN to Flatbuffer ==="
+ttmlir-translate \
+  --ttnn-to-flatbuffer \
+  -o ${MODEL}_graph_${GRAPH_NUM}.ttnn \
+  ${MODEL}_graph_${GRAPH_NUM}_ttnn.mlir
+
+echo "=== Running with ttrt ==="
+ttrt run ${MODEL}_graph_${GRAPH_NUM}.ttnn |& tee ${MODEL}_graph_${GRAPH_NUM}_ttrt_run.log
+
+echo "All artifacts in: ${REPRO_DIR}/"
+```
+
+**Running the repro script:**
+```bash
+chmod +x opt_125m_ttnn_sort_repro.sh
+./opt_125m_ttnn_sort_repro.sh
+
+# All files are in: opt_125m_ttnn_sort_2026-02-05/
+cd opt_125m_ttnn_sort_2026-02-05/
+grep FATAL opt_125m_graph_17_ttrt_run.log
 ```
 
 ---
