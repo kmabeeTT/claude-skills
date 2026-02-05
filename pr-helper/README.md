@@ -18,10 +18,11 @@ Or simply ask:
 1. **Analyzes your changes** - Checks git status, diff, and commits
 2. **Gathers context** - Extracts problem, solution, and impact from conversation
 3. **Asks for details** - Gets issue number and target repo from you
-4. **Generates PR description** - Fills in the template with all relevant info
-5. **Creates branch** - Makes `kmabee/<topic>_issue_<XXX>` branch
-6. **Commits and pushes** - Stages changes, commits, and pushes to remote
-7. **Writes PR file** - Creates `PR_<topic>_<date>.md` for easy reference
+4. **Creates branch** - Makes `kmabee/<topic>_issue_<XXX>` branch
+5. **Commits and pushes** - Stages changes, commits, and pushes to remote
+6. **Generates TWO PR files**:
+   - `PR_DESCRIPTION.md` - Clean PR body (becomes merge commit message)
+   - `PR_DETAILS.md` - Detailed context for posting as a comment
 
 ## Example Workflow
 
@@ -37,11 +38,13 @@ Skill:
    - Fix: Added typecast workaround
    - Tests: Added 2 test files
 3. Asks: "What's the GitHub issue number?"
-   You: "4567"
-4. Creates branch: kmabee/sort_f32_workaround_issue_4567
+   You: "6926"
+4. Creates branch: kmabee/sort_f32_workaround_issue_6926
 5. Commits and pushes all changes
-6. Generates PR_sort_f32_workaround_2026-02-05.md
-7. Shows you how to open the PR
+6. Generates TWO files:
+   - PR_DESCRIPTION.md (clean PR body)
+   - PR_DETAILS.md (detailed context for comment)
+7. Shows you commands to open PR and post details
 ```
 
 ## PR Template Format
@@ -64,18 +67,13 @@ Link to Github Issue
 
 ## Output
 
-Creates a file like `PR_sort_f32_workaround_2026-02-05.md`:
+Creates TWO files:
+
+### PR_DESCRIPTION.md (clean PR body - becomes merge commit message)
 
 ```markdown
-# PR: [TTNN] Add f32 input workaround for sort operation
-
-**Branch**: kmabee/sort_f32_workaround_issue_4567
-**Issue**: [Link to be filled]
-
-## PR Description for GitHub
-
 ### Ticket
-https://github.com/tenstorrent/tt-mlir/issues/4567
+https://github.com/tenstorrent/tt-mlir/issues/6926
 
 ### Problem description
 The ttnn.sort operation only supports BFloat16 or UInt16 input tensors...
@@ -83,12 +81,34 @@ The ttnn.sort operation only supports BFloat16 or UInt16 input tensors...
 ### What's changed
 Added input type checking in TTNNWorkaroundsPass.cpp...
 
-**Files Modified**:
-- `lib/Dialect/TTNN/IR/TTNNWorkaroundsPass.cpp` - Added f32→bf16 conversion
-- `test/.../sort_f32_input_workaround.mlir` - New test for workaround
+**Key Changes**:
+- Check input element type and insert f32→bf16 typecast
+- Apply same conversion to output values tensor
+
+**Impact**: Enables f32-based operations like top-k sorting
 
 ### Checklist
 - [x] New/Existing tests provide coverage for changes
+```
+
+### PR_DETAILS.md (detailed context for posting as comment)
+
+```markdown
+# Detailed Context for PR: ttnn.sort f32 Input Workaround
+
+## Files Changed
+**Modified**:
+- `lib/Dialect/TTNN/IR/TTNNWorkaroundsPass.cpp` (+22/-10)
+
+**Added**:
+- `test/ttmlir/Dialect/TTNN/sort/sort_f32_input_workaround.mlir`
+- `test/ttmlir/Dialect/TTNN/sort/sort_topk_f32_workaround.mlir`
+
+## Code Before/After
+[Detailed code snippets showing the transformation]
+
+## MLIR Transformation
+[Examples of MLIR IR before and after the fix]
 ```
 
 ## Features
@@ -97,8 +117,9 @@ Added input type checking in TTNNWorkaroundsPass.cpp...
 ✅ **File change analysis** - Summarizes what changed and why
 ✅ **Test coverage tracking** - Lists tests added/passing
 ✅ **Branch management** - Creates, commits, and pushes to branch
-✅ **Ready-to-use output** - Just copy-paste into GitHub
-✅ **Future-proof** - Includes gh CLI commands for automation later
+✅ **Two-file output** - Clean PR body + detailed context for comment
+✅ **Merge commit ready** - PR description becomes the merge commit message
+✅ **Ready-to-use output** - Just use gh CLI commands provided
 
 ## Tips
 

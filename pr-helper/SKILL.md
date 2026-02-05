@@ -50,71 +50,79 @@ Use AskUserQuestion to get:
 - Whether this should go to tt-xla or tt-mlir (or both)
 - Branch topic name (suggest based on fix)
 
-### Step 4: Generate PR Description
+### Step 4: Generate PR Files
 
-Create a file: `PR_<topic>_<date>.md`
+**IMPORTANT**: Generate TWO separate files:
 
-**Template**:
+1. **`PR_DESCRIPTION.md`** - Clean, concise PR body (becomes merge commit message)
+2. **`PR_DETAILS.md`** - Detailed context for posting as a comment
+
+#### File 1: PR_DESCRIPTION.md
+
+**Purpose**: Clean PR description that becomes the merge commit message. Keep it brief!
+
+**Template** (following tt-mlir convention):
 ```markdown
-# PR: <Concise title>
-
-**Branch**: `kmabee/<topic>_issue_<XXX>`
-**Target Repo**: tt-xla | tt-mlir
-**Issue**: [Link to be filled]
-
-## PR Description for GitHub
-
 ### Ticket
-Link to Github Issue
+<Link to Github Issue>
 
 ### Problem description
-<From conversation: What was failing? What was the error? Why did it happen?>
+<What was failing? What was the error? Keep it concise - 2-3 paragraphs max>
 
 ### What's changed
-<Describe the fix approach, files modified, and impact>
-
-**Files Modified**:
-- `path/to/file.cpp` - <brief description>
-- `path/to/test.mlir` - <brief description>
+<Describe the fix approach and impact. Keep it focused.>
 
 **Key Changes**:
-1. <Change 1>
-2. <Change 2>
+- <Change 1>
+- <Change 2>
 
 **Impact**: <What this enables/fixes>
 
 ### Checklist
 - [x] New/Existing tests provide coverage for changes
-
-**Tests Added**:
-- `test/path/to/test.mlir` - <what it tests>
-
-**Tests Now Passing**:
-- <List tests that were failing but now pass>
-
----
-
-## Summary for Reference
-
-**Before**: <What was broken>
-**After**: <What works now>
-
-## Commands for Opening PR
-
-```bash
-# Already done by skill:
-# - Created branch: kmabee/<topic>_issue_<XXX>
-# - Committed changes
-# - Pushed to remote
-
-# To open PR using GitHub CLI:
-gh pr create --repo tenstorrent/<repo> --base main \
-  --title "<Concise PR title>" \
-  --body-file PR_<topic>_<date>.md
-
-# Or open PR manually in browser:
-# https://github.com/tenstorrent/<repo>/compare/main...kmabee/<topic>_issue_<XXX>
 ```
+
+#### File 2: PR_DETAILS.md
+
+**Purpose**: Detailed context for reviewers (posted as a comment after PR creation)
+
+**Template**:
+```markdown
+# Detailed Context for PR: <Topic>
+
+This file contains additional context and details for reviewers.
+
+## Files Changed
+
+**Modified**:
+- `path/to/file.cpp` (+X/-Y)
+  - <detailed description>
+
+**Added**:
+- `path/to/test.mlir` - <what it tests>
+
+## Root Cause Details
+
+**Where it failed**: <file:line>
+**Why it failed**: <detailed explanation>
+
+## Code/MLIR Transformation Examples
+
+**Before**:
+```<language>
+<code before>
+```
+
+**After**:
+```<language>
+<code after>
+```
+
+## Test Coverage
+
+**Unit Tests**: <list>
+**Regression Tests**: <list>
+**Models Now Passing**: <list>
 ```
 
 ### Step 5: Create Branch and Commit
@@ -141,10 +149,20 @@ git push -u origin kmabee/<topic>_issue_<XXX>
 
 Tell the user:
 1. ✅ Branch created and pushed
-2. ✅ PR description written to file
+2. ✅ Two PR files generated:
+   - `PR_DESCRIPTION.md` - For PR body
+   - `PR_DETAILS.md` - For follow-up comment
 3. ✅ Ready to open PR
-4. 📄 Show the PR description file path
-5. 🔗 Provide gh CLI command to open PR
+4. 🔗 Provide gh CLI commands:
+   ```bash
+   # Create PR with clean description
+   gh pr create --repo tenstorrent/<repo> --base main \
+     --title "<Title>" \
+     --body-file PR_DESCRIPTION.md
+
+   # Post detailed context as comment
+   gh pr comment <PR_NUMBER> --body-file PR_DETAILS.md
+   ```
 
 ## Key Principles
 
@@ -163,15 +181,19 @@ Tell the user:
 1. Check git status to see changes
 2. Analyze conversation for context
 3. Ask for issue number and repo
-4. Generate PR description with:
-   - Problem: ttnn.sort didn't support f32 inputs
-   - Fix: Added typecast workaround in TTNNWorkaroundsPass
-   - Tests: Added sort_f32_input_workaround.mlir
-   - Impact: Enables top-k and sampling operations
-5. Create branch: `kmabee/sort_f32_workaround_issue_4567`
-6. Commit and push changes
-7. Write `PR_sort_f32_workaround_2026-02-05.md`
-8. Provide next steps
+4. Create branch: `kmabee/sort_f32_workaround_issue_6926`
+5. Commit and push changes
+6. Generate TWO files:
+   - `PR_DESCRIPTION.md` - Clean PR body with just the 4 template sections
+   - `PR_DETAILS.md` - Detailed context with code snippets and MLIR examples
+7. Provide commands:
+   ```bash
+   gh pr create --repo tenstorrent/tt-mlir --base main \
+     --title "[TTNN] Add f32 input workaround for sort operation" \
+     --body-file PR_DESCRIPTION.md
+
+   gh pr comment <PR_NUMBER> --body-file PR_DETAILS.md
+   ```
 
 ## Additional Features
 
@@ -218,8 +240,8 @@ return ... .addInputOperandWorkaround(inputWorkaround)
 ## Output Files
 
 Generate in current directory:
-- `PR_<topic>_YYYY-MM-DD.md` - Full PR description
-- Optional: `COMMITS.md` - List of commits in this PR
+- `PR_DESCRIPTION.md` - Clean, concise PR body (for merge commit message)
+- `PR_DETAILS.md` - Detailed context with code snippets, MLIR examples, etc. (for comment)
 
 ## Tips
 
