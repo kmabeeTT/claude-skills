@@ -1,0 +1,16 @@
+#!/bin/bash
+# MLIR Graph Debug - Wrapper script
+# This is invoked by Claude Code when the user types /mlir-graph-debug
+
+# Note: This is a Claude Code skill that primarily uses Claude's analysis
+# The actual debugging logic is in the SKILL.md prompt
+# This wrapper could be extended to call helpers.py or other preprocessing
+
+# For now, just pass args through to indicate the skill was invoked
+echo "MLIR Graph Debug Skill invoked with args: $@"
+echo ""
+echo "Analyzing log file for MLIR graph failures..."
+echo ""
+
+# The actual work is done by Claude following the SKILL.md instructions
+# This script is mainly for validation and could be extended with preprocessing
