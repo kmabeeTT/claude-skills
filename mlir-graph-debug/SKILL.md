@@ -20,19 +20,42 @@ Analyze the provided log file to:
 
 ### Step 1: Extract Graphs and Find Failure
 
-Use the extraction script to get all MLIR graphs:
+**Extract MLIR graphs using the extraction script:**
 ```bash
-python ../scripts/extract_mlir_graphs.py <log_file> --type ttnn
+python ../scripts/extract_mlir_graphs.py <log_file> --type ttir
 ```
 
-Find the failure location:
+**If the script fails, use manual extraction with awk:**
+```bash
+# Extract graph N (e.g., N=17)
+awk '/MLIR Module ttir:/{if(++count==N) flag=1; next}
+     /END OF MLIR MODULE|MLIR Module ttnn:/{flag=0}
+     flag' log_file > graph_N_ttir.mlir
+```
+
+**CRITICAL: Validate extracted MLIR files:**
+After extraction, always verify:
+1. First line should start with valid MLIR (`#loc`, `module @`, etc.) - NOT log prefixes
+2. Last line should be MLIR code or closing brace - NOT "END OF MLIR MODULE"
+3. No log timestamps or metadata mixed in
+
+**Cleanup if needed:**
+```bash
+# Remove log prefix from first line if present
+tail -n +2 graph.mlir > graph_clean.mlir
+
+# Remove trailing log separators
+head -n -1 graph.mlir > graph_clean.mlir
+```
+
+**Find the failure location:**
 ```bash
 grep -n "FATAL\|TT_FATAL\|TT_THROW\|critical.*TT_" <log_file>
 ```
 
-Map the failure to a specific graph by correlating:
+**Map failure to graph by correlating:**
 - "Starting execution of program" lines
-- "MLIR Module ttnn:" lines
+- "MLIR Module ttir:" lines
 - The failure line number
 
 ### Step 2: Identify the Problematic Operation
