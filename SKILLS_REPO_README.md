@@ -80,6 +80,18 @@ GitHub Repository (this repo)
 
 Claude Code modifies files in `~/.claude/skills/`, which is actually a symlink to the Git repository, so all changes are automatically tracked and can be synced across machines.
 
+### Global CLAUDE.md (cross-machine working notes)
+
+This repo also holds a root-level `CLAUDE.md` — global, always-loaded working notes
+(operational pitfalls, machine/setup gotchas). It rides the same sync. On each machine,
+symlink it into place once (in addition to the skills symlink):
+
+```bash
+ln -s "$(pwd)/CLAUDE.md" ~/.claude/CLAUDE.md   # run from the repo checkout
+```
+
+`skills-sync push` / `pull` keep it in sync like everything else (`sync.sh` does `git add .`).
+
 ## How It Works
 
 1. **On any machine**: Claude Code (or you) modify a skill
