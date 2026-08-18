@@ -46,23 +46,56 @@ version: 1.0.0
 Instructions and guidance for Claude...
 ```
 
-## Setup
+## Install
 
-### Initial Setup (Primary Machine)
+Clone the repo anywhere, then run the installer from inside it:
 
 ```bash
-# Run interactive setup
-cd ~/.claude/skills/skills-sync
-./setup-skills-sync.sh
-# Choose option 1, follow prompts
+git clone git@github.com:kmabeeTT/claude-skills.git ~/claude-skills
+cd ~/claude-skills
+./install.sh
 ```
 
-### Additional Machines
+That creates the two symlinks this layout depends on:
+
+| Link | Purpose |
+|------|---------|
+| `~/.claude/skills` -> this repo | where Claude Code loads skills from |
+| `~/.claude/CLAUDE.md` -> `./CLAUDE.md` | global, always-loaded working notes |
+
+Restart Claude Code (or start a new session) afterwards to pick the skills up.
+
+`install.sh` resolves the repo location from its own path, so the clone can live anywhere —
+`~/claude-skills`, `~/code/claude-skills`, whatever. It is idempotent: re-running when both
+links are already correct reports `ok` and changes nothing.
+
+**Options**
+
+| Flag | Effect |
+|------|--------|
+| `--dry-run` | print what would happen, touch nothing |
+| `--force` | repoint a symlink aimed elsewhere; move a real file/dir aside to `<name>.bak.<timestamp>` |
+| `--skip-claude-md` | install skills only, leave the global `CLAUDE.md` alone |
+| `--help` | usage |
+
+It never deletes anything. If `~/.claude/skills` is a real directory rather than a symlink,
+it refuses and exits 1 instead of risking skills that exist only on that machine — `--force`
+renames it out of the way rather than removing it. Honors `CLAUDE_CONFIG_DIR` if Claude's
+config lives somewhere other than `~/.claude`.
+
+Optional extras:
 
 ```bash
-# Clone and symlink
-git clone https://github.com/YOUR_USERNAME/claude-skills.git ~/code/claude-skills
-ln -s ~/code/claude-skills ~/.claude/skills
+./setup-aliases.sh    # shell aliases: skills-push / skills-pull / skills-status (edits your shell rc)
+```
+
+### First-time sync setup
+
+Only needed when creating the GitHub side from scratch, rather than cloning an existing repo:
+
+```bash
+cd ~/claude-skills/skills-sync
+./setup-skills-sync.sh     # choose option 1, follow the prompts
 ```
 
 ## Git Sync Workflow
@@ -111,6 +144,7 @@ Then say: "Push my skills" and Claude will sync it to GitHub.
 ```
 ~/.claude/skills/
 ├── README.md                    # This file
+├── install.sh                   # Wire this checkout into ~/.claude (symlinks)
 ├── setup-aliases.sh             # Optional shell aliases
 ├── skills-sync/                 # Git sync skill
 │   ├── SKILL.md                 # Skill definition
