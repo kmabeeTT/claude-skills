@@ -57,3 +57,41 @@ Operational lessons to avoid re-paying time already spent. Keep this lean.
   TTFT. Use distinct per-run tokens.
 - **Don't display the requested value where a measured one can catch a shortfall** (e.g.
   show actual generated token count, not `max_tokens`) — masking it hides real bugs.
+
+## Git push & CI dispatch (shared TT boxes)
+- **Two different push blockers; the rejection text tells them apart.** `Permission denied
+  (publickey)`, or a hang non-interactively, means this shell's `SSH_AUTH_SOCK` points at an agent
+  that died on reconnect — `source ~/.bashrc` re-points at a live one (that block probes each
+  candidate with `ssh-add -l`, since a live agent holding no keys fails identically).
+  `remote rejected ... 'workflows' scope may be required` is NOT that: the `gh` HTTPS token carries
+  `gist, read:org, repo` but no `workflow`, so any push whose branch changes `.github/workflows/*`
+  relative to the default branch is refused — e.g. moving a branch onto an older base. The message
+  says "timeout" and retrying does nothing; **push over SSH**, which OAuth scopes don't gate.
+- **Verify the push landed before dispatching CI against it** — `git ls-remote` sha == local sha.
+  A rejected push plus a fired `gh workflow run` silently tests stale remote content.
+- **A branch that conflicts with its base makes GitHub skip every `pull_request` workflow.** It
+  cannot build `refs/pull/N/merge`, so PR Gate / Sanity / pre-commit never run, while
+  `pull_request_target` ones still do. It presents as "CI mysteriously never ran", never as a
+  conflict warning. Check `gh pr view N --json mergeable` FIRST — a rebase fixes it; close/reopen,
+  force-push and recreating the PR all do nothing.
+- Squash-merge here uses the **PR title and body**, not the branch commits (`squash_merge_commit_
+  title: PR_TITLE`), and GitHub appends the **PR** number to the subject. So `Fixes #N` belongs in
+  the PR description, and an issue number in the PR title would collide with the appended one.
+
+## Disk on shared boxes
+- **`/` is shared with hundreds of users and fills without warning.** `du` under-reports badly:
+  other users' home dirs are unreadable, so `du` totalling 45G against `df` 613G is expected, not a
+  mystery. Only your own share is actionable.
+- **The HuggingFace cache is the usual culprit** — any `from_pretrained("<repo id>")` (rather than a
+  local path) downloads a second copy of a model already on `/data`; 223G in one case. Fixed
+  permanently with `~/.cache/huggingface -> /data/kmabee/hf_cache`. Leave `~/.cache/tt-metal-cache`
+  local: it is thousands of small JIT files and NFS would slow every build.
+- When `/` is full the Claude Code Bash tool cannot run **at all** (it needs `/tmp` for scratch), so
+  free space from a normal shell first.
+
+## Claude Code quirks here
+- **`pgrep -f` / `pkill -f` match the tool's own wrapper shell**, whose command line contains the
+  entire script text. A wait-loop grepping for its own target string sees itself and never exits;
+  `pkill -f <pattern>` can kill the wrapper (exit 144). Act on a PID, not a pattern.
+- `--collect-only` still loads the deepseek conftest and **opens all 32 chips**, so it is not safe
+  to run alongside a live job. Read the test source instead.
