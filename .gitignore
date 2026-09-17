@@ -27,3 +27,6 @@ ENV/
 # Temporary
 tmp/
 temp/
+
+# Claude Code plugin/skill bundle cache (not source)
+synced/

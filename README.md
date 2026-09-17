@@ -31,6 +31,25 @@ Claude will automatically use this skill when you mention storage estimation or 
 
 📖 [Documentation](hf-storage-estimate/SKILL.md)
 
+### prefill-perf-debug
+**Chunked-prefill performance, as a repeatable funnel**
+
+Finds whether prefill time is going into the per-chunk cost or the prefix cost, which
+layers own each, which ops inside them, and — with approval — what those ops are bound
+by. Enforces twelve assertions (A1–A12) drawn from claims that were published and then
+retracted, so it refuses to say more than was measured.
+
+**Example phrases:**
+- "Why is TTFT so high?"
+- "Long-context throughput is bad — where does the time go?"
+- "Compare chunk size 2048 vs 8192"
+- "Is this a prefill perf regression?"
+
+Levels 0–2 are automated; level 3 (ablations) is assisted only. `validate.py` reproduces
+the published Gemma4 results offline as a regression test — 102 checks, no device time.
+
+📖 [Documentation](prefill-perf-debug/README.md) · [Method and traps](prefill-perf-debug/METHOD.md)
+
 ## How Skills Work
 
 Skills use `SKILL.md` files with YAML frontmatter:
@@ -150,10 +169,19 @@ Then say: "Push my skills" and Claude will sync it to GitHub.
 │   ├── SKILL.md                 # Skill definition
 │   ├── sync.sh                  # Implementation
 │   └── setup-skills-sync.sh     # Setup wizard
-└── hf-storage-estimate/         # Storage estimation skill
-    ├── SKILL.md                 # Skill definition
-    ├── estimate_storage.py      # Implementation
-    └── README.md               # Additional docs
+├── hf-storage-estimate/         # Storage estimation skill
+│   ├── SKILL.md                 # Skill definition
+│   ├── estimate_storage.py      # Implementation
+│   └── README.md                # Additional docs
+└── prefill-perf-debug/          # Chunked-prefill perf funnel
+    ├── SKILL.md                 # The procedure Claude follows
+    ├── METHOD.md                # Why each assertion exists
+    ├── EXAMPLES.md              # Worked examples, real output
+    ├── ppd.py                   # CLI (probe/budget/level0-3/check/compare/analyze)
+    ├── assertions.py            # A1-A12 as checkable code
+    ├── validate.py              # Offline regression test vs published results
+    ├── profiles/                # Per-model harness descriptions
+    └── tests/run_tests.sh       # validate + CLI smoke + unit checks
 ```
 
 ## Benefits

@@ -1,0 +1,29 @@
+#!/bin/bash
+# prefill-perf-debug - wrapper invoked when the user types /prefill-perf-debug.
+#
+# The procedure itself is in SKILL.md, which Claude follows. This wrapper does the one
+# thing worth doing before any of it: check the tooling and show the entry points, so a
+# missing tt-perf-report or a stale profile shows up now rather than 12 minutes into a
+# capture.
+S="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "prefill-perf-debug  (args: $*)"
+echo
+python3 - "$S" <<'PY'
+import glob, os, shutil, sys
+s = sys.argv[1]
+print(f"  skill dir       {s}")
+print(f"  python          {sys.version.split()[0]}")
+tp = shutil.which("tt-perf-report")
+print(f"  tt-perf-report  {tp or 'NOT FOUND - pip install tt-perf-report (level 2 unavailable)'}")
+profs = sorted(os.path.splitext(os.path.basename(p))[0]
+               for p in glob.glob(os.path.join(s, "profiles", "*.json"))
+               if not os.path.basename(p).startswith("TEMPLATE"))
+print(f"  profiles        {', '.join(profs) or 'none - copy profiles/TEMPLATE.json'}")
+PY
+echo
+echo "Next:  python3 $S/ppd.py probe  --profile <model>     # always first"
+echo "       python3 $S/ppd.py budget --tier triage         # cost + consent"
+echo "       python3 $S/ppd.py analyze --goal \"<the ask>\"    # every offline level"
+echo
+echo "Read SKILL.md for the procedure, METHOD.md for why each assertion exists."

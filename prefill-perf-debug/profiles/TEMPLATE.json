@@ -1,0 +1,112 @@
+{
+  "_HOWTO": [
+    "Copy to profiles/<model>.json and fill in. Then: ppd.py probe --profile <model>.",
+    "Every field below is read by code; a wrong regex or signpost template is the usual",
+    "cause of an empty level. Fill what you can, probe, and fix what it reports MISSING -",
+    "a model with only the e2e block is still worth a level-0 pass.",
+    "v1 is validated on Gemma4 only, so expect to discover fields this template lacks."
+  ],
+  "profile_version": 1,
+  "model": "<short id, used in the run directory name>",
+  "description": "<one line: params, layer mix, mesh>",
+  "tree": "<absolute path to the checkout>",
+  "branch_expected": "<branch these numbers were taken on, or null>",
+  "env_file": "<a shell file sourced before every device run, or null>",
+  "python": "{tree}/python_env/bin/python3",
+
+  "mesh": {"id": "8x4", "cp": 8, "tp": 4, "arch": "blackhole"},
+
+  "layers": {
+    "total": 0,
+    "types": {
+      "<type-a>": {"count": 0, "hf_name": "<name in the HF config>", "note": "<what it owns>"},
+      "<type-b>": {"count": 0, "hf_name": "", "note": "context-invariant  <- start this note with 'context-invariant' to mark the A8 control"}
+    }
+  },
+
+  "chunk_sizes": [],
+  "legality": {"min_chunk": 0, "rule": "<what makes a (chunk, mesh) pair legal>", "note": ""},
+  "floor_fit_chunks": "<the 2-3 chunk sizes the floor is fitted over; omit for the smallest three>",
+
+  "e2e": {
+    "_": "the whole-model chunked-prefill test. Levels 0-3 all rest on per_chunk_re.",
+    "test_file": "<path relative to tree>",
+    "test_name": "",
+    "node_id": "<pytest id with {ctx_k} {chunk} {mesh} placeholders>",
+    "default_ctx": 32768,
+    "per_chunk_re": "<regex with named groups i, n, start, end, ms - one match per chunk>",
+    "summary_re": "<regex with device_s / staging_s / readback_s, or null>",
+    "separates_device_staging_readback": false,
+    "minutes_per_point": 3
+  },
+
+  "layer_bench": {
+    "_": "the isolated-layer benchmark. Without it, levels 1-2 are unavailable.",
+    "test_file": "",
+    "test_name": "",
+    "node_id": "<pytest id with {idx} {layer_type} {chunk} {ctx_k} {mesh}>",
+    "layer_type_values": [],
+    "default_ctx": 262144,
+    "result_re": "<regex with named groups lt, idx, kv, ms>",
+    "fake_depth_field": "<the valid-KV-length field the test sets, e.g. kv_actual_global>",
+    "signpost": "<template with {layer_type} {idx} {phase}>",
+    "signpost_phases": ["start", "stop"],
+    "minutes_per_point": 3,
+    "minutes_per_capture": 12,
+    "gb_per_capture": 5
+  },
+
+  "layer_count_override": {
+    "_": "how to truncate the model to N layers for layer-count differencing.",
+    "available": false,
+    "how": "<env var or flag, if there is one>",
+    "reason": "<if unavailable, WHY - this becomes the degradation message>",
+    "sites": []
+  },
+
+  "growing_op": {
+    "_": "the op expected to grow with context. occupancy is what the Cores column hides (A3).",
+    "name": "<exact OP Code substring as tt-perf-report prints it>",
+    "source": "<path to the program factory, so the work-unit math can be re-read>",
+    "occupancy": {
+      "q_chunk": 0,
+      "n_q_heads_local": 0,
+      "batch": 1,
+      "grid_cores": 0,
+      "rows_per_device": "chunk/cp",
+      "idle_cores_skipped": false,
+      "note": "<the formula, quoted from the source>"
+    }
+  },
+
+  "ablation_catalogue": [
+    {"knob": "<ENV=value or a described patch>", "varies": "<the ONE cost term>",
+     "site": "<file to patch>", "measured": null, "conclusion": "",
+     "scope_note": "<what this knob does NOT vary - A1 scope discipline>"}
+  ],
+  "ablation_sites_note": "Level 3 is assisted only: propose, get approval, verify the revert.",
+
+  "artifacts": {
+    "_": "existing logs/captures, so levels can run offline before any device time.",
+    "runs_dir": "",
+    "captures": {
+      "<tag>": {"chunk": 0, "chunk_idx": 0, "prior_ctx": 0}
+    },
+    "pre_halo_baseline": null,
+    "level0_log": "",
+    "level1_logs": {},
+    "layer_count_logs": {}
+  },
+
+  "validation": {
+    "_": "published numbers this profile must reproduce. Omit the block if there are none;",
+    "__": "with it, `ppd.py validate` becomes a real regression test for the whole skill.",
+    "source": "",
+    "isl": 262144,
+    "tolerance_pct": 2.0,
+    "level0": {"log": "", "rows": [], "min_r2": 0.999, "derived": {}},
+    "level1": {},
+    "level2": {},
+    "assertions": {}
+  }
+}

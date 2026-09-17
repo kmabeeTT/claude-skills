@@ -1,0 +1,456 @@
+{
+  "profile_version": 1,
+  "model": "gemma4-31b",
+  "description": "Gemma4-31B chunked prefill on a BH Galaxy. 60 layers = 50 sliding (local) + 10 full attention (global).",
+  "tree": "/data/kmabee/tt-metal-2",
+  "branch_expected": "kmabee/gemma4-swa-multihop-halo",
+  "env_file": "/data/kmabee/gemma4_runs/env.sh",
+  "python": "{tree}/python_env/bin/python3",
+  "mesh": {
+    "id": "8x4",
+    "cp": 8,
+    "tp": 4,
+    "arch": "blackhole"
+  },
+  "layers": {
+    "total": 60,
+    "types": {
+      "global": {
+        "count": 10,
+        "hf_name": "full_attention",
+        "note": "owns the entire prefix term"
+      },
+      "local": {
+        "count": 50,
+        "hf_name": "sliding_attention",
+        "note": "context-invariant; owns ~84% of the floor by count"
+      }
+    }
+  },
+  "chunk_sizes": [
+    2048,
+    4096,
+    8192,
+    16384,
+    32768
+  ],
+  "legality": {
+    "min_chunk": 1024,
+    "rule": "chunk >= 1024 and context_len % chunk == 0",
+    "note": "sliding_halo_hop_count = ceil(window/(chunk/cp)) must be <= cp; window=1024, cp=8 -> floor is chunk>=1024 (models/demos/gemma4_d_p/tt/model.py:152)"
+  },
+  "e2e": {
+    "test_file": "models/demos/gemma4_d_p/demo/text_demo_prefill.py",
+    "test_name": "test_prefill_long_context_traced",
+    "node_id": "blackhole-readback_final-ctx_{ctx_k}k-chunk{chunk}-text-{mesh}",
+    "default_ctx": 32768,
+    "per_chunk_re": "\\[traced_perf\\] chunk (?P<i>\\d+)/(?P<n>\\d+) \\[(?P<start>\\d+), (?P<end>\\d+)\\) device=(?P<ms>[0-9.]+)ms",
+    "summary_re": "\\[traced_perf\\] DEVICE (?P<tokens>\\d+) tokens in (?P<device_s>[0-9.]+)s \\((?P<tok_s>\\d+) tok/s\\) \\| staging (?P<staging_s>[0-9.]+)s \\| readback (?P<readback_s>[0-9.]+)s",
+    "separates_device_staging_readback": true,
+    "minutes_per_point": 3
+  },
+  "layer_bench": {
+    "test_file": "models/demos/gemma4_d_p/demo/text_demo_prefill.py",
+    "test_name": "test_prefill_layer_perf_chunk_n",
+    "node_id": "blackhole-chunk{idx}-{layer_type}-sz{chunk}-ctx_{ctx_k}k-{mesh}",
+    "layer_type_values": [
+      "global",
+      "local",
+      "both",
+      "all"
+    ],
+    "default_ctx": 262144,
+    "result_re": "\\[layer_perf_chunk\\] RESULT type=(?P<lt>\\w+) chunk=(?P<idx>\\d+) ring_depth=\\d+ kv_actual_global=(?P<kv>\\d+) measured_ms=(?P<ms>[0-9.]+)",
+    "fake_depth_field": "kv_actual_global",
+    "signpost": "gemma4-layer-{layer_type}-chunk{idx}-{phase}",
+    "signpost_phases": [
+      "start",
+      "stop"
+    ],
+    "sliding_is_called": "local",
+    "minutes_per_point": 3,
+    "minutes_per_capture": 12,
+    "gb_per_capture": 5
+  },
+  "layer_count_override": {
+    "available": false,
+    "reason": "no env knob; num_hidden_layers is read from the HF config and validate_31b_config() (tt/model_config.py) hard-rejects a changed value. Layer-count differencing needs a temporary patch -> assisted path only.",
+    "sites": [
+      "models/demos/gemma4_d_p/tt/model_config.py:validate_31b_config",
+      "models/demos/gemma4_d_p/tt/common.py:63"
+    ]
+  },
+  "growing_op": {
+    "name": "RingJointSDPADeviceOperation",
+    "source": "ttnn/cpp/ttnn/operations/transformer/ring_joint_sdpa/device/ring_joint_sdpa_program_factory.cpp",
+    "occupancy": {
+      "q_chunk": 64,
+      "n_q_heads_local": 8,
+      "batch": 1,
+      "grid_cores": 110,
+      "rows_per_device": "chunk/cp",
+      "idle_cores_skipped": false,
+      "note": "units = B*NH*ceil((chunk/cp)/q_chunk); depth = ceil(units/grid); cores with no unit run padded handshake iterations, so Cores always reads ~114"
+    }
+  },
+  "ablation_catalogue": [
+    {
+      "knob": "GEMMA4_KV_DTYPE=bfp4",
+      "varies": "K/V bytes (-47%)",
+      "site": "global KV cache dtype",
+      "measured": 0.998,
+      "conclusion": "not byte-bandwidth-bound",
+      "scope_note": "halves bytes but not tile count, so it refutes byte-bandwidth, not per-tile overhead"
+    },
+    {
+      "knob": "GEMMA4_SDPA_EXP_APPROX=1",
+      "varies": "softmax exp path",
+      "site": "sdpa compute kernel config",
+      "measured": 1.007,
+      "conclusion": "softmax negligible"
+    },
+    {
+      "knob": "GEMMA4_SDPA_FIDELITY=lofi",
+      "varies": "MAC passes 2->1",
+      "site": "models/demos/gemma4_d_p/tt/attention/__init__.py",
+      "measured": 0.786,
+      "conclusion": "MAC-throughput-bound"
+    },
+    {
+      "knob": "GEMMA4_SDPA_FIDELITY=hifi4",
+      "varies": "MAC passes 2->4",
+      "site": "models/demos/gemma4_d_p/tt/attention/__init__.py",
+      "measured": 1.755,
+      "conclusion": "same; HiFi4 strictly dominated (no accuracy gain)"
+    },
+    {
+      "knob": "GEMMA4_GLOBAL_K_CHUNK=128",
+      "varies": "inner-loop blocking",
+      "site": "ring_prefill.py program config",
+      "measured": 1.156,
+      "conclusion": "256 already optimal; 512 overflows L1"
+    },
+    {
+      "knob": "GEMMA4_GLOBAL_Q_CHUNK",
+      "varies": "work-unit size",
+      "site": "ring_prefill.py program config",
+      "measured": null,
+      "conclusion": "-4.6% @8192 (q=128), -8.0% @2048 (q=32), TTFT unchanged"
+    }
+  ],
+  "ablation_sites_note": "These env vars are DIAGNOSTIC PATCHES, not in-tree. Each needs a temporary edit to the site listed. Level 3 is assisted only: propose, get approval, verify the revert with `git diff --stat` against a recorded pre-patch sha.",
+  "artifacts": {
+    "runs_dir": "/data/kmabee/gemma4_runs",
+    "captures": {
+      "floor_c2048": {
+        "chunk": 2048,
+        "chunk_idx": 0,
+        "prior_ctx": 0
+      },
+      "floor_c4096": {
+        "chunk": 4096,
+        "chunk_idx": 0,
+        "prior_ctx": 0
+      },
+      "floor_c8192": {
+        "chunk": 8192,
+        "chunk_idx": 0,
+        "prior_ctx": 0
+      },
+      "deep_c2048_i24": {
+        "chunk": 2048,
+        "chunk_idx": 24,
+        "prior_ctx": 49152
+      },
+      "deep_c4096_i12": {
+        "chunk": 4096,
+        "chunk_idx": 12,
+        "prior_ctx": 49152
+      },
+      "deep_c8192_i6": {
+        "chunk": 8192,
+        "chunk_idx": 6,
+        "prior_ctx": 49152
+      }
+    },
+    "pre_halo_baseline": {
+      "dir": "/data/kmabee/gemma4_runs/attn_op_captures",
+      "branch": "svuckovic/gemma4-prefill-model @ d3064a5fd6b",
+      "captures": {
+        "isl0k": {
+          "chunk": 8192,
+          "chunk_idx": 0
+        },
+        "isl48k": {
+          "chunk": 8192,
+          "chunk_idx": 6
+        }
+      },
+      "note": "the ONLY pre-halo baseline. Do not delete: A6 makes any cross-branch claim invalid without it."
+    },
+    "level0_log": "/data/kmabee/gemma4_runs/mh_sweep/run.log",
+    "level1_logs": {
+      "2048": "/data/kmabee/gemma4_runs/curve_both_c2048/run.log",
+      "4096": "/data/kmabee/gemma4_runs/curve_both_c4096/run.log",
+      "8192": "/data/kmabee/gemma4_runs/curve_both_c8192/run.log"
+    },
+    "layer_count_logs": {
+      "2048": {
+        "60": "/data/kmabee/gemma4_runs/nlayer_c2048_n60/run.log",
+        "12": "/data/kmabee/gemma4_runs/nlayer_c2048_n12/run.log",
+        "6": "/data/kmabee/gemma4_runs/nlayer_c2048_n6/run.log"
+      },
+      "8192": {
+        "60": "/data/kmabee/gemma4_runs/nlayer_c8192_n60/run.log",
+        "12": "/data/kmabee/gemma4_runs/nlayer_c8192_n12/run.log",
+        "6": "/data/kmabee/gemma4_runs/nlayer_c8192_n6/run.log"
+      }
+    }
+  },
+  "validation": {
+    "source": "SPEC.md s6 / tech_reports/Gemma4PrefillChunkSize",
+    "isl": 262144,
+    "tolerance_pct": 2.0,
+    "level0": {
+      "log": "/data/kmabee/gemma4_runs/mh_sweep/run.log",
+      "rows": [
+        {
+          "chunk": 2048,
+          "a_ms": 131.3,
+          "slope_ms": 1.458,
+          "total_s": 28.66
+        },
+        {
+          "chunk": 4096,
+          "a_ms": 174.2,
+          "slope_ms": 2.995,
+          "total_s": 17.19
+        },
+        {
+          "chunk": 8192,
+          "a_ms": 242.7,
+          "slope_ms": 11.99,
+          "total_s": 13.71
+        },
+        {
+          "chunk": 16384,
+          "a_ms": 443.7,
+          "slope_ms": 37.1,
+          "total_s": 11.55
+        },
+        {
+          "chunk": 32768,
+          "a_ms": 928.2,
+          "slope_ms": 126.2,
+          "total_s": 10.96,
+          "slope_unverifiable": "the surviving ctx_32k sweep has N=1 at chunk 32768, so no slope can be fitted from it. The 126.2 in SPEC s6 is not reproducible from any log left on this box (ctx_128k/2026-09-09 gives 139.7, ctx_256k/2026-09-09 gives 145.4 on a different build -> A12). Reported as UNVERIFIABLE, never silently re-derived."
+        }
+      ],
+      "min_r2": 0.9996,
+      "derived": {
+        "chunk_invariant_cost_ms": 94.2,
+        "excess_over_ideal_ms": 70.6,
+        "excess_is_three_quarters_of_F": true,
+        "F_basis": "endpoint solve on the (2048, 8192) pair, which makes excess = 3/4*F an identity"
+      }
+    },
+    "level1": {
+      "depth_curves": [
+        {
+          "chunk": 2048,
+          "layer": "global",
+          "a_ms": 2.79,
+          "slope_ms": 0.1455
+        },
+        {
+          "chunk": 2048,
+          "layer": "local",
+          "a_ms": 2.54,
+          "slope_ms": -0.0001
+        }
+      ],
+      "reconstruction": {
+        "chunk": 2048,
+        "predicted_slope_ms": 1.449,
+        "measured_slope_ms": 1.458,
+        "tol_pct": 2.0
+      },
+      "layer_count_differencing": [
+        {
+          "chunk": 2048,
+          "L_ms": 2.181,
+          "F_ms": 0.46
+        },
+        {
+          "chunk": 8192,
+          "L_ms": 4.029,
+          "F_ms": 0.93
+        }
+      ]
+    },
+    "level2": {
+      "rows": [
+        {
+          "capture": "floor_c2048",
+          "layer": "global",
+          "layer_ms": 2.669,
+          "sdpa_ms": 0.189
+        },
+        {
+          "capture": "floor_c2048",
+          "layer": "local",
+          "layer_ms": 2.43,
+          "sdpa_ms": 0.404
+        },
+        {
+          "capture": "floor_c4096",
+          "layer": "global",
+          "layer_ms": 3.822,
+          "sdpa_ms": 0.357
+        },
+        {
+          "capture": "floor_c4096",
+          "layer": "local",
+          "layer_ms": 3.242,
+          "sdpa_ms": 0.421
+        },
+        {
+          "capture": "floor_c8192",
+          "layer": "global",
+          "layer_ms": 5.858,
+          "sdpa_ms": 1.316
+        },
+        {
+          "capture": "floor_c8192",
+          "layer": "local",
+          "layer_ms": 4.362,
+          "sdpa_ms": 0.455
+        },
+        {
+          "capture": "deep_c2048_i24",
+          "layer": "global",
+          "layer_ms": 6.142,
+          "sdpa_ms": 3.662
+        },
+        {
+          "capture": "deep_c2048_i24",
+          "layer": "local",
+          "layer_ms": 2.435,
+          "sdpa_ms": 0.405
+        },
+        {
+          "capture": "deep_c4096_i12",
+          "layer": "global",
+          "layer_ms": 7.297,
+          "sdpa_ms": 3.831
+        },
+        {
+          "capture": "deep_c4096_i12",
+          "layer": "local",
+          "layer_ms": 3.269,
+          "sdpa_ms": 0.454
+        },
+        {
+          "capture": "deep_c8192_i6",
+          "layer": "global",
+          "layer_ms": 12.822,
+          "sdpa_ms": 8.266
+        },
+        {
+          "capture": "deep_c8192_i6",
+          "layer": "local",
+          "layer_ms": 4.358,
+          "sdpa_ms": 0.461
+        }
+      ],
+      "headline": {
+        "growth_share_pct": {
+          "2048": 100.0,
+          "4096": 100.0,
+          "8192": 99.8
+        },
+        "sliding_delta_pct": {
+          "2048": 0.2,
+          "4096": 0.8,
+          "8192": -0.1
+        },
+        "occupancy_test": {
+          "work_ratio": 0.25,
+          "time_ratio": 0.443,
+          "predicted_occupancy": 0.5,
+          "predicted_neutral": 0.25,
+          "efficiency_loss": 1.77,
+          "pair_2048_4096": 0.956
+        },
+        "useful_occupancy_pct": {
+          "2048": 29,
+          "4096": 58,
+          "8192": 58,
+          "16384": 78,
+          "32768": 93
+        },
+        "cores_column_reads": 114,
+        "floor_composition_ms": {
+          "matmul_weight_reads": 41,
+          "rms_norm": 24,
+          "halo": 13,
+          "rest": 16
+        },
+        "floor_attribution": {
+          "basis_pair": [
+            2048,
+            8192
+          ],
+          "dominant_layer_type": "local",
+          "share_pct": {
+            "per_op_clamped": 82.8,
+            "excess_in_range": 84.8,
+            "affine_layer": 85.0
+          },
+          "model_total_ms": {
+            "per_op_clamped": 112.9,
+            "excess_in_range": 79.0,
+            "affine_layer": 110.0
+          },
+          "per_layer_ms_per_op_clamped": {
+            "global": 1.94,
+            "local": 1.87
+          },
+          "max_spread_pts": 3.0,
+          "note": "SPEC s6 quotes ~83-84%. per_op_clamped reproduces the published 1.94/1.87 ms and 82.8%; the other two estimators are 84.8% and 85.0%. All three are reported; none is authoritative alone."
+        }
+      },
+      "cross_check": [
+        {
+          "what": "floor_c8192 global vs level-0 a per global layer",
+          "perop_ms": 5.858,
+          "level0_ms": 5.87,
+          "tol_pct": 2.0
+        },
+        {
+          "what": "deep_c8192_i6 global vs 5.87 + 6*1.2272",
+          "perop_ms": 12.822,
+          "level0_ms": 13.23,
+          "tol_pct": 5.0
+        }
+      ]
+    },
+    "assertions": {
+      "A2_gap_outlier_capture": "deep_c8192_i6",
+      "A2_expect_outlier_op": "EmbeddingsDeviceOperation",
+      "A3_cores_constant": 114,
+      "A6_pair": [
+        "/data/kmabee/gemma4_runs/perf_reports/OLD/isl0k_local.csv",
+        "/data/kmabee/gemma4_runs/perf_reports/floor_c8192_local.csv"
+      ],
+      "A6_expected_sdpa_delta_pct": 1.9,
+      "A6_false_regression_pct": 21.0,
+      "A6_device_spread_pct": 17.0
+    }
+  },
+  "floor_fit_chunks": [
+    2048,
+    4096,
+    8192
+  ]
+}
