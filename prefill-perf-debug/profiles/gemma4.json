@@ -145,32 +145,38 @@
       "floor_c2048": {
         "chunk": 2048,
         "chunk_idx": 0,
-        "prior_ctx": 0
+        "prior_ctx": 0,
+        "sha": "23df2b38ba4"
       },
       "floor_c4096": {
         "chunk": 4096,
         "chunk_idx": 0,
-        "prior_ctx": 0
+        "prior_ctx": 0,
+        "sha": "23df2b38ba4"
       },
       "floor_c8192": {
         "chunk": 8192,
         "chunk_idx": 0,
-        "prior_ctx": 0
+        "prior_ctx": 0,
+        "sha": "23df2b38ba4"
       },
       "deep_c2048_i24": {
         "chunk": 2048,
         "chunk_idx": 24,
-        "prior_ctx": 49152
+        "prior_ctx": 49152,
+        "sha": "4f7c02aa79c"
       },
       "deep_c4096_i12": {
         "chunk": 4096,
         "chunk_idx": 12,
-        "prior_ctx": 49152
+        "prior_ctx": 49152,
+        "sha": "4f7c02aa79c"
       },
       "deep_c8192_i6": {
         "chunk": 8192,
         "chunk_idx": 6,
-        "prior_ctx": 49152
+        "prior_ctx": 49152,
+        "sha": "4f7c02aa79c"
       }
     },
     "pre_halo_baseline": {
@@ -205,7 +211,8 @@
         "12": "/data/kmabee/gemma4_runs/nlayer_c8192_n12/run.log",
         "6": "/data/kmabee/gemma4_runs/nlayer_c8192_n6/run.log"
       }
-    }
+    },
+    "capture_build_caveat": "The floor and deep captures straddle 3904f52f50d ('Serve prefill at several chunk widths from one model'), which reworked create_rope_caches and touched model.py (109 lines) and common.py on the live path. The published depth-0 -> depth-49152 subtraction is therefore a CROSS-BUILD comparison (A12). Probably benign - the isolated-layer test builds single-width on both sides - but unverified, and re-rendering cannot fix it. A fresh capture set should take all six on one sha."
   },
   "validation": {
     "source": "SPEC.md s6 / tech_reports/Gemma4PrefillChunkSize",
@@ -451,7 +458,12 @@
       ],
       "A6_expected_sdpa_delta_pct": 1.9,
       "A6_false_regression_pct": 21.0,
-      "A6_device_spread_pct": 17.0
+      "A6_device_spread_pct": 17.0,
+      "A12_reference_captures_straddle": {
+        "floor_sha": "23df2b38ba4",
+        "deep_sha": "4f7c02aa79c",
+        "straddled_commit": "3904f52f50d"
+      }
     },
     "remeasured_ctx256k_2026_09_18": {
       "why": "The published large-chunk slopes came from a ctx_32k sweep where N=2 (16384) and N=1 (32768). Both were re-measured with direct ctx_256k runs. Use these as the reference values for 16384/32768; the level0 rows above remain the record of what the ctx_32k sweep itself yields.",

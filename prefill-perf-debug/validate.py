@@ -323,6 +323,16 @@ def main(profile_name="gemma4", verbose=True, tolerance=None):
                 va["A6_expected_sdpa_delta_pct"], 30.0, "%")
         R.truth(f"A6: and NOT the false +{va['A6_false_regression_pct']:.0f}% the stored table implied",
                 abs(100.0 * (new - old) / old) < 5.0)
+    ref = va.get("A12_reference_captures_straddle")
+    if ref:
+        fb = H.capture_build(os.path.join(prof["artifacts"]["runs_dir"], "floor_c8192"))
+        db = H.capture_build(os.path.join(prof["artifacts"]["runs_dir"], "deep_c8192_i6"))
+        R.truth(f"A12 reads the capture sha out of the run log "
+                f"({fb['sha']} / {db['sha']})",
+                fb["sha"] == ref["floor_sha"] and db["sha"] == ref["deep_sha"])
+        R.truth("A12 DETECTS that the reference floor/deep captures straddle a code change "
+                f"({ref['straddled_commit']}) - the published subtraction is cross-build",
+                A.A12_same_build({"build": fb["sha"]}, {"build": db["sha"]}).status == "fail")
     a12 = A.A12_same_build({"build": "svuckovic/gemma4-prefill-model"},
                            {"build": "kmabee/gemma4-swa-multihop-halo"})
     R.truth("A12 blocks a silent cross-build per-op comparison", a12.status == "fail")

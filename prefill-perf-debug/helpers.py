@@ -238,6 +238,27 @@ def find_ops_csv(capture_dir):
     return None
 
 
+def capture_build(capture_dir):
+    """The git sha/branch a capture was taken on, from the run log the driver writes.
+
+    Without this, level 2 can silently subtract two captures taken on different builds -
+    which is exactly what A12 forbids, and which re-rendering cannot fix, because the
+    difference is in the hardware runs and not in the rendering.
+    """
+    for name in ("run.log", "capture.log"):
+        p = os.path.join(capture_dir, name)
+        if not os.path.exists(p):
+            continue
+        with open(p, errors="replace") as fh:
+            for line in fh:
+                m = re.match(r"###\s*git:\s*([0-9a-f]{7,40})\s*(\S+)?", line)
+                if m:
+                    return {"sha": m.group(1), "branch": m.group(2), "source": p}
+                if line.startswith("2026-") or line.startswith("202"):
+                    break   # past the header
+    return {"sha": None, "branch": None, "source": None}
+
+
 def perf_report_version():
     exe = shutil.which("tt-perf-report")
     if not exe:
@@ -382,7 +403,8 @@ def useful_occupancy(profile, chunk):
     This is the number the profiler cannot show: idle cores are not skipped, so
     `Cores` reads the full grid at every chunk size.
     """
-    g = profile.get("growing_op", {}).get("occupancy")
+    g = ((profile.get("growing_op") or {}).get("occupancy")
+         or (profile.get("occupancy_model") or {}).get("occupancy"))
     if not g:
         return None
     cp = profile["mesh"]["cp"]

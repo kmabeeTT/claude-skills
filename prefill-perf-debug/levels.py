@@ -362,6 +362,10 @@ def level2(profile, pairs, out_dir, rendered=None):
     for p in pairs:
         entry = {"name": p["name"], "chunk": p["chunk"],
                  "prior_ctx": p["deep"].get("prior_ctx"), "layers": {}}
+        builds = {side: (p[side].get("build") or
+                         (H.capture_build(p[side]["dir"]) if p[side].get("dir") else {}))
+                  for side in ("floor", "deep")}
+        entry["builds"] = builds
         sides = {}
         for side in ("floor", "deep"):
             spec = p[side]
@@ -380,7 +384,15 @@ def level2(profile, pairs, out_dir, rendered=None):
             fg, dg = H.group_ops(fr), H.group_ops(dr)
             ftot, dtot = H.total_device_us(fr), H.total_device_us(dr)
             delta = dtot - ftot
-            growing = profile.get("growing_op", {}).get("name", "")
+            per_op = H.subtract(dg, fg)
+            # Which op grows is a RESULT, so it is discovered from the subtraction. A
+            # profile may name one, but only as a cross-check - a profile that asserts the
+            # answer turns a measurement into a confirmation.
+            discovered = per_op[0]["op"] if per_op and per_op[0]["delta_us"] > 0 else None
+            declared = profile.get("growing_op", {}).get("name") or ""
+            growing = declared or discovered or ""
+            mismatch = bool(declared and discovered and declared not in discovered
+                            and discovered not in declared and delta > 0.02 * (ftot or 1))
             gdelta = H.op_device_us(dr, growing) - H.op_device_us(fr, growing)
             entry["layers"][lt] = {
                 "floor_ms": ftot / 1000.0,
@@ -388,6 +400,9 @@ def level2(profile, pairs, out_dir, rendered=None):
                 "delta_ms": delta / 1000.0,
                 "delta_pct": 100.0 * delta / ftot if ftot else None,
                 "growing_op": growing,
+                "growing_op_discovered": discovered,
+                "growing_op_declared": declared or None,
+                "declared_vs_discovered_mismatch": mismatch,
                 "growing_op_floor_ms": H.op_device_us(fr, growing) / 1000.0,
                 "growing_op_deep_ms": H.op_device_us(dr, growing) / 1000.0,
                 # a growth share is meaningless when the layer barely moved: noise/noise.
@@ -395,7 +410,7 @@ def level2(profile, pairs, out_dir, rendered=None):
                 "growth_share_pct": (100.0 * gdelta / delta)
                                     if (ftot and abs(100.0 * delta / ftot) >= 2.0) else None,
                 "is_control": bool(ftot and abs(100.0 * delta / ftot) < 2.0),
-                "by_op": H.subtract(dg, fg)[:12],
+                "by_op": per_op[:12],
                 "floor_by_op": [{"op": k, "n": v["n"], "device_us": v["device_us"],
                                  "cores": v["cores"], "fidelity": v["fidelity"]}
                                 for k, v in sorted(fg.items(), key=lambda kv: -kv[1]["device_us"])],
@@ -408,14 +423,35 @@ def level2(profile, pairs, out_dir, rendered=None):
         for a in A.run_capture_checks(drows, profile, p["chunk"]):
             a.name = f'{a.name} [{p["deep"].get("tag", p["name"])}/{main_lt}]'
             res["assertions"].append(a.to_dict())
+        # A12: the floor/deep subtraction is only a measurement of context if both sides
+        # ran on the same build. Re-rendering cannot repair a build difference here.
+        fb, db = builds["floor"], builds["deep"]
+        if fb.get("sha") and db.get("sha"):
+            a12 = A.A12_same_build(
+                {"build": fb["sha"], "label": f'{p["name"]} floor'},
+                {"build": db["sha"], "label": f'{p["name"]} deep'})
+            a12.name = f'{a12.name} [{p["name"]} floor vs deep]'
+            if a12.status == "fail":
+                a12.detail = (f'floor captured on {fb["sha"]}, deep on {db["sha"]}. The '
+                              f'depth-0 -> depth-D subtraction therefore mixes two builds, so '
+                              f'part of the "growth with context" may be a code change. '
+                              f'Re-render does NOT fix this - recapture both on one sha.')
+            res["assertions"].append(a12.to_dict())
+        else:
+            res["assertions"].append(A.Assertion(
+                "A12", f'same build [{p["name"]} floor vs deep]', "na",
+                "no `### git:` header in one or both capture logs, so the builds cannot be "
+                "compared. Record the sha at capture time.").to_dict())
         entry.pop("_rows", None)
         res["pairs"].append(entry)
 
     # A8: a layer type that should not move with context is the control
+    # A8: the control is the layer type that DID NOT move - identified by measurement.
+    # Basing it on a profile label would make the control assert its own result.
     controls = []
     for e in res["pairs"]:
         for lt, d in e["layers"].items():
-            if profile["layers"]["types"][lt].get("note", "").startswith("context-invariant"):
+            if d.get("is_control"):
                 controls.append({"name": f'{lt} layer @ chunk {e["chunk"]}',
                                  "expected_flat": True, "delta_pct": d["delta_pct"]})
     if controls:
@@ -470,20 +506,32 @@ def level2_reconcile(profile, l2, l0):
                 implied += counts[lt] * growth / n_idx
             out.append(A.A10_closes_against_level0(
                 implied, row["slope_ms"], 20.0,
-                f'chunk {e["chunk"]} prefix slope implied by {profile["growing_op"]["name"]}').to_dict())
+                f'chunk {e["chunk"]} prefix slope implied by '
+                f'{next(iter(e["layers"].values()))["growing_op"]}').to_dict())
     return out
 
 
 def render_level2(profile, res):
     L = ["Level 2 - per-op, depth 0 vs depth D (Device Time sums; A2: Total % is unusable here)", ""]
     for e in res["pairs"]:
-        L.append(f"chunk {e['chunk']}  ({e['name']})")
+        b = e.get("builds") or {}
+        shas = {k: (v or {}).get("sha") for k, v in b.items()}
+        tag = ""
+        if shas.get("floor") and shas.get("deep"):
+            tag = (f"  [build {shas['floor'][:9]}]" if shas["floor"] == shas["deep"]
+                   else f"  [!! floor {shas['floor'][:9]} vs deep {shas['deep'][:9]}]")
+        L.append(f"chunk {e['chunk']}  ({e['name']}){tag}")
         for lt, d in e["layers"].items():
             L.append(f"  {lt:<8} layer {d['floor_ms']:7.3f} -> {d['deep_ms']:7.3f} ms  "
                      f"({d['delta_pct']:+6.1f}%)   {d['growing_op'].replace('DeviceOperation','')}: "
                      f"{d['growing_op_floor_ms']:6.3f} -> {d['growing_op_deep_ms']:6.3f} ms"
                      + (f"   growth share {d['growth_share_pct']:.1f}%"
                         if d["growth_share_pct"] is not None else "   [CONTROL: flat]"))
+        for lt, d in e["layers"].items():
+            if d.get("declared_vs_discovered_mismatch"):
+                L.append(f"  !! {lt}: profile declares {d['growing_op_declared']} as the growing "
+                         f"op, but the largest growth is {d['growing_op_discovered']}. "
+                         f"Trust the measurement; the profile is stale or wrong.")
         occ = res.get("occupancy", {}).get(str(e["chunk"]))
         if occ:
             L.append(f"  useful occupancy {occ['useful_pct']:.0f}%  ({occ['work_units']} units / "
