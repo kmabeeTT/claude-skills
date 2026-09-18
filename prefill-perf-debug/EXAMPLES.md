@@ -257,8 +257,9 @@ WHY THIS COMPARISON IS VALID
   predicted number.
 
 TRAP
-  The one comparison that CANNOT discriminate is 2048 vs 4096: both models predict 0.5
-  there because both are depth-1. A valid test has to include the chunk size where the
+  The one comparison that CANNOT discriminate is 4096 vs 8192: both models predict 0.5
+  there (1 grid pass vs 2, and 2x the tokens). 2048 vs 4096 is the sharpest test, at
+  0.50 neutral vs 1.00 occupancy. A valid test has to include the chunk size where the
   models disagree.
 ```
 

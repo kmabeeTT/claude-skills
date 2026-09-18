@@ -126,12 +126,32 @@ def _dedupe(pairs):
 
 
 def _assert_lines(findings):
+    """Every assertion in `findings`, wherever it sits.
+
+    This used to read three fixed keys, one of which (`reconciliation`) nothing ever
+    wrote, so an A10 FAILURE from level2_reconcile never reached TLDR.md - the exact
+    thing this skill exists to surface. It now walks the structure instead, so a new
+    level or a renamed key cannot silently drop a fired assertion again.
+    """
+    labels = {"level0": "level 0", "level1": "level 1", "level2": "level 2",
+              "level2_reconcile": "reconciliation", "reconciliation": "reconciliation",
+              "level3": "level 3"}
+
+    def walk(node, block, out):
+        if isinstance(node, dict):
+            if "id" in node and "status" in node:
+                out.append((block, node))
+                return
+            for k, v in node.items():
+                walk(v, labels.get(k, block), out)
+        elif isinstance(node, list):
+            for v in node:
+                walk(v, block, out)
+
     out = []
-    for block, items in (("level 0", findings.get("level0", {}).get("assertions", [])),
-                         ("level 2", findings.get("level2", {}).get("assertions", [])),
-                         ("reconciliation", findings.get("reconciliation", []))):
-        for a in items or []:
-            out.append((block, a))
+    for key in ("level0", "level1", "level2", "level2_reconcile", "reconciliation", "level3"):
+        if key in findings:
+            walk(findings[key], labels.get(key, key), out)
     return out
 
 
@@ -349,11 +369,16 @@ def _tree(root, limit=60):
 
 def prune_raw(capture_dirs, dry_run=True):
     """Delete the ~4.8 GB per-capture raw device CSVs. Only the ops CSV is needed afterwards."""
+    # os.walk, NOT glob("**"): the biggest copies live in `profiler/.logs/`, and glob
+    # skips dot-directories, so a glob-based prune silently left ~10 GB per capture.
+    names = {"profile_log_device.csv", "tracy_ops_times.csv", "tracy_ops_data.csv"}
     targets = []
     for d in capture_dirs:
-        for name in ("profile_log_device.csv", "tracy_ops_times.csv", "tracy_ops_data.csv"):
-            for p in __import__("glob").glob(os.path.join(d, "**", name), recursive=True):
-                targets.append((p, os.path.getsize(p)))
+        for root, _dirs, files in os.walk(d):
+            for name in files:
+                if name in names:
+                    fp = os.path.join(root, name)
+                    targets.append((fp, os.path.getsize(fp)))
     total = sum(s for _, s in targets)
     if not dry_run:
         for p, _ in targets:

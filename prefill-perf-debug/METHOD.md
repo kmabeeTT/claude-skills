@@ -141,8 +141,20 @@ work of 8192. An efficiency-neutral op predicts **0.25x** the time. The occupanc
 (cost ∝ depth) predicts **0.50x**. Measured: **0.443x** — a 1.77x efficiency loss.
 Falsifiable, and it survived.
 
-Note which pair can discriminate. 2048-vs-4096 came in at 0.956x, and *both* models
-predict 0.5 there because both are depth-1. A valid test **has** to include 2048.
+Note which pair can discriminate — and this was got backwards in the first writeup.
+The grid passes are 1 / 1 / 2 at 2048 / 4096 / 8192, so:
+
+| pair | neutral predicts | occupancy predicts | verdict |
+|---|---|---|---|
+| 2048 vs 8192 | 0.250 | 0.500 | discriminates |
+| 4096 vs 8192 | 0.500 | 0.500 | **blind — this is the useless pair** |
+| 2048 vs 4096 | 0.500 | **1.000** | **discriminates hardest** |
+
+Two equal-pass chunk sizes should cost the *same*, not half as much, so 2048-vs-4096
+coming in at **0.956x** was the single strongest piece of evidence for occupancy and was
+originally dismissed as uninformative. A blind re-run on 2026-09-18 measured the same
+pair at **0.9997x** on depth-subtracted growth. Always derive the predicted ratio for
+every pair from the work-unit math before choosing the capture matrix.
 
 **A8, the control:** the sliding layer being flat to **+0.2% / +0.8% / −0.1%** across a
 prior context of 0 → 49,152 tokens is what made the global layer's +119% credible rather

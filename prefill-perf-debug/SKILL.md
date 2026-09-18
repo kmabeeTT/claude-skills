@@ -145,6 +145,18 @@ at chunk 8192 and 14k at 2048; matching prior context makes the prefix work exac
 proportional to chunk size, which turns the comparison into a test with a predicted
 number. `level2` refuses an unmatched set.
 
+**A capture is not finished when pytest says `passed`.** Tracy's `generate_report` then
+spends ~4 more minutes turning the ~5 GB device log into the ops CSV, and a waiter armed
+on `1 passed` returns while that CSV is still 0 bytes. Poll for
+`find <out> -name 'ops_perf_results_*.csv' -size +1M`, or for the `python -m tracy`
+process exiting — not for the pytest summary line.
+
+Choose the capture matrix from the growing op's **work-unit math**, before spending
+device time: compute the predicted ratio under both models for every candidate pair and
+keep the pair where they disagree most. On Gemma4 the grid passes are 1/1/2 at
+2048/4096/8192, so 4096-vs-8192 is blind (both models say 0.50) and 2048-vs-4096 is the
+sharpest test (0.50 vs 1.00).
+
 ### Level 3 — assisted only
 ```bash
 python3 $S/ppd.py level3 --list
@@ -240,7 +252,7 @@ and accuracy evaluation.
 captures already on disk, and exercises every assertion.
 
 ```bash
-python3 $S/validate.py          # expect: 102 passed, 0 failed
+python3 $S/validate.py          # expect: 104 passed, 0 failed
 ```
 
 A change to this skill that drops a check there is a regression. Run it after any edit.

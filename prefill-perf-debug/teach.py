@@ -71,7 +71,10 @@ LESSONS = [
         "prediction": "At MATCHED prior context, the prefix work is exactly proportional to the "
                       "chunk's token count. So a 4x smaller chunk does 0.25x the work. If the op "
                       "is efficiency-neutral it takes 0.25x the time; if it is occupancy-bound it "
-                      "takes 0.50x. Write both numbers down BEFORE the capture. (Measured: 0.443x.)",
+                      "takes 0.50x. Write both numbers down BEFORE the capture. This block "
+                      "deliberately does NOT state the measured value: `teach` is printed "
+                      "before you predict, so a number here would contaminate the very "
+                      "prediction it is asking you for.",
         "command": "ppd.py run --what capture --chunk C --chunk-idx I ... --launch   # depth 0 and depth D\n"
                    "ppd.py level2 --pairs pairs.json --level0-log <e2e.log>",
         "result": "per-op Device Time at both depths, the subtraction, the growth share, useful "
@@ -88,9 +91,11 @@ LESSONS = [
                        "A4 - the utilization columns are empty; do not plan around them",
                        "A5 - never --device-trace-profiler",
                        "A10 - per-op sums overstate by ~13-15%; print the residual"],
-        "trap": "The one comparison that CANNOT discriminate is 2048 vs 4096: both models predict "
-                "0.5 there because both are depth-1. A valid test has to include the chunk size "
-                "where the models disagree.",
+        "trap": "Work out which pair can actually discriminate BEFORE choosing the matrix, from "
+                "the op's own work-unit math. On Gemma4 the grid passes are 1/1/2 for "
+                "2048/4096/8192, so 4096-vs-8192 is the BLIND pair - neutral and occupancy both "
+                "predict 0.50 - while 2048-vs-4096 is the sharpest test, at 0.50 vs 1.00. A "
+                "matrix that omits the discriminating pair cannot decide anything.",
     },
     {
         "level": 3,

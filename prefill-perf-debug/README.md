@@ -96,7 +96,7 @@ Stdlib only; no third-party imports. `tt-perf-report` is needed for level 2
 ## Self-test
 
 ```bash
-python3 $S/validate.py          # expect 102 passed, 0 failed
+python3 $S/validate.py          # expect 104 passed, 0 failed
 $S/tests/run_tests.sh
 ```
 
