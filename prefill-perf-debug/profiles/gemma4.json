@@ -218,32 +218,38 @@
           "chunk": 2048,
           "a_ms": 131.3,
           "slope_ms": 1.458,
-          "total_s": 28.66
+          "total_s": 28.66,
+          "n_fit_points_in_this_log": 16
         },
         {
           "chunk": 4096,
           "a_ms": 174.2,
           "slope_ms": 2.995,
-          "total_s": 17.19
+          "total_s": 17.19,
+          "n_fit_points_in_this_log": 8
         },
         {
           "chunk": 8192,
           "a_ms": 242.7,
           "slope_ms": 11.99,
-          "total_s": 13.71
+          "total_s": 13.71,
+          "n_fit_points_in_this_log": 4
         },
         {
           "chunk": 16384,
           "a_ms": 443.7,
           "slope_ms": 37.1,
-          "total_s": 11.55
+          "total_s": 11.55,
+          "n_fit_points_in_this_log": 2,
+          "slope_superseded": "this log yields 37.1 from only N=2 points. Direct ctx_256k measurement on 2026-09-18 (N=16, R2=0.99960) gives slope 40.33, a=436.2, total 11.82 s. A refit of the 2026-09-09 pre-halo log base_c16384 (N=16) gives 40.91, agreeing to 1.4% -> the N=2 fit was bad, NOT a regression. Keep checking 37.1 here: it verifies the parser against THIS log."
         },
         {
           "chunk": 32768,
           "a_ms": 928.2,
           "slope_ms": 126.2,
           "total_s": 10.96,
-          "slope_unverifiable": "the surviving ctx_32k sweep has N=1 at chunk 32768, so no slope can be fitted from it. The 126.2 in SPEC s6 is not reproducible from any log left on this box (ctx_128k/2026-09-09 gives 139.7, ctx_256k/2026-09-09 gives 145.4 on a different build -> A12). Reported as UNVERIFIABLE, never silently re-derived."
+          "slope_unverifiable": "the surviving ctx_32k sweep has N=1 at chunk 32768, so no slope can be fitted from it. The 126.2 in SPEC s6 is not reproducible from any log left on this box (ctx_128k/2026-09-09 gives 139.7, ctx_256k/2026-09-09 gives 145.4 on a different build -> A12). Reported as UNVERIFIABLE, never silently re-derived. SINCE MEASURED: a direct ctx_256k run on 2026-09-18 (N=8, R2=0.99962) gives slope 140.69, a=917.9, total 11.28 s -- agreeing with the 2026-09-09 ctx_128k refit (139.7) to 0.7%, so the published 126.2 was a bad fit and not a regression. Still UNVERIFIABLE *from this log*, which has N=1.",
+          "n_fit_points_in_this_log": 1
         }
       ],
       "min_r2": 0.9996,
@@ -446,6 +452,51 @@
       "A6_expected_sdpa_delta_pct": 1.9,
       "A6_false_regression_pct": 21.0,
       "A6_device_spread_pct": 17.0
+    },
+    "remeasured_ctx256k_2026_09_18": {
+      "why": "The published large-chunk slopes came from a ctx_32k sweep where N=2 (16384) and N=1 (32768). Both were re-measured with direct ctx_256k runs. Use these as the reference values for 16384/32768; the level0 rows above remain the record of what the ctx_32k sweep itself yields.",
+      "branch": "kmabee/gemma4-swa-multihop-halo",
+      "logs": "/data/kmabee/gemma4_runs/e2e_recheck/gemma4_ctx_256k_chunk{16384,32768}_run_*.log",
+      "rows": [
+        {
+          "chunk": 16384,
+          "n": 16,
+          "a_ms": 436.2,
+          "slope_ms": 40.33,
+          "total_s": 11.82,
+          "r2": 0.9996,
+          "per_chunk_term_s": 6.98,
+          "prefix_term_s": 4.84
+        },
+        {
+          "chunk": 32768,
+          "n": 8,
+          "a_ms": 917.9,
+          "slope_ms": 140.69,
+          "total_s": 11.28,
+          "r2": 0.99962,
+          "per_chunk_term_s": 7.34,
+          "prefix_term_s": 3.94
+        }
+      ],
+      "occupancy_model_range": "cost ~ rounds/C calibrated at chunk 8192 predicts the prefix term to +2.8%/+0.1%/0.0% at 2048/4096/8192 but -10.8% at 16384 and -14.8% at 32768. The earlier 'all five within 5%' was an artifact of the two bad slopes. Do not extrapolate the model above chunk 8192.",
+      "method_lesson": "Record N alongside every fitted parameter and refuse to report a slope from N<3. The original table mixed slopes fitted from 16 points with slopes fitted from 2 and 1.",
+      "floor_estimators": {
+        "share_pct": {
+          "per_op_clamped": 82.8,
+          "excess_in_range": 84.8,
+          "affine_layer": 85.0,
+          "note": "share is robust; its agreement IS the evidence"
+        },
+        "absolute_ms": {
+          "per_op_clamped": 112.9,
+          "excess_in_range": 79.0,
+          "affine_layer": 110.0,
+          "prefer": 94.2,
+          "note": "43% spread -- do NOT report these as agreeing. Prefer the whole-model affine fit (94.2 ms): anchored on e2e per-chunk device times, whereas per-op sums inherit the isolated-layer harness's missing inter-layer overlap."
+        },
+        "clamp_defect": "cmp_ops.py clamped each op's intercept at 0. It fired on one op (global RingJointSDPA, F=-290.4 us, +17.6% on the global per-layer fixed cost). The negative intercept is misspecification: that op is ~quadratic in the chunk at index 0. Now de-clamped and flagged upstream."
+      }
     }
   },
   "floor_fit_chunks": [
