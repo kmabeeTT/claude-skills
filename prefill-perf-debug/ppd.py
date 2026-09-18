@@ -210,7 +210,8 @@ def cmd_run(args):
         cmd = LV.build_e2e_cmd(prof, args.chunk, args.ctx, extra_env=json.loads(args.env) if args.env else None)
     else:
         cmd = LV.build_capture_cmd(prof, args.chunk, args.chunk_idx, args.layer_type, args.ctx,
-                                   args.out or os.getcwd())
+                                   args.out or os.getcwd(),
+                                   extra_env=json.loads(args.env) if args.env else None)
     chk = A.A5_no_device_trace_profiler(cmd)
     print(chk)
     if chk.status == "fail":

@@ -441,14 +441,25 @@ def within(got, ref, tol_pct):
 
 
 def git_info(tree):
-    def run(*a):
+    """sha / branch / dirty for `tree`.
+
+    `dirty` FAILS CLOSED. `git status --porcelain` takes ~13 s on a large NFS checkout
+    and can exceed the timeout; the previous version turned any timeout into "" and
+    therefore reported `dirty=False`, i.e. a timeout was indistinguishable from a clean
+    tree. A12 and level 3 both trust this flag, so an unknown state must never read as
+    clean. On failure `dirty` is None and callers must treat None as "do not trust".
+    """
+    def run(*a, timeout=120):
         try:
-            return subprocess.run(["git", "-C", tree, *a], capture_output=True, text=True, timeout=20).stdout.strip()
+            r = subprocess.run(["git", "-C", tree, *a], capture_output=True, text=True,
+                               timeout=timeout)
+            return r.stdout.strip() if r.returncode == 0 else None
         except Exception:
-            return ""
-    return {"sha": run("rev-parse", "--short", "HEAD"),
-            "branch": run("rev-parse", "--abbrev-ref", "HEAD"),
-            "dirty": bool(run("status", "--porcelain"))}
+            return None
+    st = run("status", "--porcelain")
+    return {"sha": run("rev-parse", "--short", "HEAD") or "",
+            "branch": run("rev-parse", "--abbrev-ref", "HEAD") or "",
+            "dirty": None if st is None else bool(st)}
 
 
 def human_bytes(n):

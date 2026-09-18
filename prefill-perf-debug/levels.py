@@ -37,16 +37,23 @@ def build_e2e_cmd(profile, chunk, ctx, extra_env=None):
     return f'{env} {shlex.quote(py)} -m pytest {shlex.quote(nodeid)} -sv'.strip()
 
 
-def build_capture_cmd(profile, chunk, chunk_idx, layer_type, ctx, out_dir):
-    """Tracy capture of the isolated-layer benchmark. A5: no --device-trace-profiler."""
+def build_capture_cmd(profile, chunk, chunk_idx, layer_type, ctx, out_dir, extra_env=None):
+    """Tracy capture of the isolated-layer benchmark. A5: no --device-trace-profiler.
+
+    `extra_env` is honoured here as well as in build_e2e_cmd. It used to be accepted by
+    the CLI and silently dropped on this path, which would produce a BASELINE capture
+    labelled as an ablation capture - an unfalsifiable per-op comparison.
+    """
     lb = profile["layer_bench"]
     node = lb["node_id"].format(idx=chunk_idx, layer_type=layer_type, chunk=chunk,
                                 ctx_k=ctx // 1024, mesh=profile["mesh"]["id"])
     nodeid = f'{lb["test_file"]}::{lb["test_name"]}[{node}]'
     py = profile.get("python", "python3").format(tree=profile["tree"])
-    cmd = (f'TT_METAL_PROFILER_PROGRAM_SUPPORT_COUNT=20000 {shlex.quote(py)} -m tracy -r -p -v '
+    env = " ".join(f"{k}={shlex.quote(str(v))}" for k, v in (extra_env or {}).items())
+    cmd = (f'{env} TT_METAL_PROFILER_PROGRAM_SUPPORT_COUNT=20000 {shlex.quote(py)} '
+           f'-m tracy -r -p -v '
            f'-o {shlex.quote(os.path.join(out_dir, "profiler"))} '
-           f'-m pytest {shlex.quote(nodeid)} -sv')
+           f'-m pytest {shlex.quote(nodeid)} -sv').strip()
     assert "--device-trace-profiler" not in cmd
     return cmd
 
