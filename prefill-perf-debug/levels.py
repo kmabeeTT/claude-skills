@@ -11,6 +11,7 @@ import glob
 import json
 import math
 import os
+import re
 import shlex
 import subprocess
 import time
@@ -99,7 +100,7 @@ def disk_free(path):
 # ── level 0 ──────────────────────────────────────────────────────────────────
 
 
-def level0(profile, logs, isl=None, reference_chunk=None):
+def level0(profile, logs, isl=None, reference_chunk=None, goal=None):
     """Fit t_i = a + slope*i per chunk size, project to ISL, and report the two terms."""
     isl = isl or profile.get("validation", {}).get("isl", 262144)
     series = {}
@@ -126,8 +127,19 @@ def level0(profile, logs, isl=None, reference_chunk=None):
     fitted = [r for r in rows if r.get("total_s")]
     if fitted:
         explicit = next((r for r in fitted if r["chunk"] == reference_chunk), None)
+        basis = "requested"
+        if not explicit and goal:
+            # "2048 vs 8192" in the goal means the user is asking about THAT pair. Quoting
+            # ratios against some third chunk size answers a question nobody asked.
+            named = [c for c in sorted({int(m) for m in re.findall(r"\b(\d{4,6})\b", goal)})
+                     if any(r["chunk"] == c for r in fitted)]
+            # exactly two, or it is ambiguous which pair was meant (a context length can
+            # itself look like a chunk size). Ambiguous falls back, visibly.
+            if len(named) == 2:
+                explicit = next(r for r in fitted if r["chunk"] == named[-1])
+                basis = f"from --goal ({named[0]} vs {named[-1]})"
         best = explicit or min(fitted, key=lambda r: r["total_s"])
-        out["reference_basis"] = "requested" if explicit else "best total"
+        out["reference_basis"] = basis if explicit else "best total"
         out["reference_chunk"] = best["chunk"]
         for r in fitted:
             r["vs_reference"] = {

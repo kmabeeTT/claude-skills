@@ -4,7 +4,7 @@ All output below is real, produced by this skill against the Gemma4-31B artifact
 `bh-glx-120-b03u02`. Everything except Example 5 is **offline** — no device time.
 
 ```bash
-S=~/.claude/skills/prefill-perf-debug
+S="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/prefill-perf-debug"
 ```
 
 ---

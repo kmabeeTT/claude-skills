@@ -69,7 +69,7 @@ def cmd_budget(args):
     print(f"  {n_cap} profiler capture(s) x ~{m_cap} min = ~{n_cap*m_cap} min, ~{gb} GB raw")
     print(f"  TOTAL ~{minutes//60}h {minutes%60}m device time, ~{gb} GB disk")
     print()
-    where = args.workdir or os.getcwd()
+    where = _workdir(args, prof)
     free = LV.disk_free(where)
     print(f"Disk at {where}: {H.human_bytes(free)} free; need ~{gb} GB "
           f"({'OK' if free > gb * 1.2 * 2**30 else 'TIGHT - prune as you go'})")
@@ -93,7 +93,7 @@ def cmd_level0(args):
     logs = [l for l in logs if l and os.path.exists(l)]
     if not logs:
         raise SystemExit("no readable --log given, and the profile has no validation level0 log")
-    res = LV.level0(prof, logs, isl=args.isl, reference_chunk=args.reference)
+    res = LV.level0(prof, logs, isl=args.isl, reference_chunk=args.reference, goal=args.goal)
     print(LV.render_level0(res))
     if args.json:
         with open(args.json, "w") as fh:
@@ -233,6 +233,25 @@ def cmd_run(args):
     return 0
 
 
+def _workdir(args, prof):
+    """Where run directories go.
+
+    NOT the cwd by default: the natural cwd for this work is the model checkout, and
+    dropping a prefill-perf/ tree into someone's git repo is not acceptable. Order:
+    --workdir, $PPD_WORKDIR, the profile's artifacts.runs_dir, then cwd as a last resort.
+    """
+    for cand in (args.workdir if hasattr(args, "workdir") else None,
+                 os.environ.get("PPD_WORKDIR"),
+                 (prof.get("artifacts") or {}).get("runs_dir")):
+        if cand and os.path.isdir(cand):
+            return cand
+    cwd = os.getcwd()
+    if os.path.isdir(os.path.join(cwd, ".git")):
+        print(f"NOTE: {cwd} is a git repo and no --workdir/$PPD_WORKDIR/profile runs_dir "
+              f"is set; writing run artifacts here would pollute it.", file=sys.stderr)
+    return cwd
+
+
 def cmd_teach(args):
     import teach as T
     print(T.render(args.level, args.profile))
@@ -262,7 +281,7 @@ def cmd_level3(args):
 def cmd_analyze(args):
     """Run every level that has data, emit the output contract, print the TLDR."""
     prof = H.load_profile(args.profile)
-    run_dir = args.run_dir or RP.new_run_dir(args.workdir or os.getcwd(), prof["model"])
+    run_dir = args.run_dir or RP.new_run_dir(_workdir(args, prof), prof["model"])
     rendered_text, findings = {}, {}
 
     caps = PR.probe(prof, sample_log=args.level0_log or
@@ -272,7 +291,8 @@ def cmd_analyze(args):
     l0log = args.level0_log or (prof.get("validation", {}).get("level0", {}) or {}).get("log")
     l0 = None
     if l0log and os.path.exists(l0log):
-        l0 = LV.level0(prof, [l0log], isl=args.isl, reference_chunk=args.reference)
+        l0 = LV.level0(prof, [l0log], isl=args.isl, reference_chunk=args.reference,
+                       goal=args.goal)
         findings["level0"] = l0
         rendered_text["level0"] = LV.render_level0(l0)
 
@@ -309,7 +329,8 @@ def cmd_analyze(args):
     for k in ("level0", "level1", "level2"):
         if k in rendered_text:
             print("\n" + rendered_text[k])
-    print(f"\nrun directory: {run_dir}")
+    print(f"\nrun directory: {run_dir}"
+          f"\n  (override with --workdir or $PPD_WORKDIR)")
     print(f"  TLDR.md  REPORT.md  manifest.json  findings.json  reports/")
     return 0
 
@@ -365,7 +386,9 @@ def main(argv=None):
     p.add_argument("--log", action="append")
     p.add_argument("--isl", type=int)
     p.add_argument("--reference", type=int,
-                   help="chunk size to quote ratios against (default: the best total)")
+                   help="chunk size to quote ratios against (default: parsed from --goal, "
+                        "else the best total)")
+    p.add_argument("--goal", help="the user's question; two chunk sizes in it set --reference")
     p.add_argument("--json")
     p.set_defaults(fn=cmd_level0)
 

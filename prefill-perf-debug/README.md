@@ -5,8 +5,11 @@ problem is the per-chunk cost or the prefix cost, which layers own it, which ops
 them, and — with approval — what those ops are bound by. Then say only what was measured.
 
 ```bash
-/prefill-perf-debug                      # Claude follows SKILL.md
-python3 ~/.claude/skills/prefill-perf-debug/ppd.py --help    # the CLI directly
+/prefill-perf-debug            # Claude follows SKILL.md
+
+# the CLI directly. NOT necessarily ~/.claude: this account may set CLAUDE_CONFIG_DIR.
+S="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/prefill-perf-debug"
+python3 $S/ppd.py --help
 ```
 
 ## Usage
@@ -93,8 +96,8 @@ Stdlib only; no third-party imports. `tt-perf-report` is needed for level 2
 ## Self-test
 
 ```bash
-python3 ~/.claude/skills/prefill-perf-debug/validate.py     # expect 102 passed, 0 failed
-~/.claude/skills/prefill-perf-debug/tests/run_tests.sh
+python3 $S/validate.py          # expect 102 passed, 0 failed
+$S/tests/run_tests.sh
 ```
 
 `validate.py` is a **regression test, not documentation**. It reproduces the published

@@ -31,7 +31,10 @@ Everything lives in this directory. The CLI is `ppd.py`; run it with the repo's 
 python (no third-party imports, stdlib only).
 
 ```bash
-S=~/.claude/skills/prefill-perf-debug
+# NOT necessarily ~/.claude — this account may set CLAUDE_CONFIG_DIR elsewhere.
+S="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/prefill-perf-debug"
+[ -d "$S" ] || S="$(dirname "$(find "$HOME" /data/* -maxdepth 4 -name SKILL.md -path '*prefill-perf-debug*' 2>/dev/null | head -1)")"
+
 python3 $S/ppd.py --help
 python3 $S/ppd.py teach          # the method, with the traps, before you start
 ```
