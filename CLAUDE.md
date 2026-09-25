@@ -67,6 +67,18 @@ Operational lessons to avoid re-paying time already spent. Keep this lean.
   `gist, read:org, repo` but no `workflow`, so any push whose branch changes `.github/workflows/*`
   relative to the default branch is refused — e.g. moving a branch onto an older base. The message
   says "timeout" and retrying does nothing; **push over SSH**, which OAuth scopes don't gate.
+- **`source ~/.bashrc` is a NO-OP in Claude Code's Bash tool** — so the agent fix above needs
+  running by hand here. bashrc returns at line 8 (`case $- in *i*) ;; *) return;;`) because the
+  shell is non-interactive, and never reaches the probe at line 218; you then wrongly conclude
+  there is no agent. Run the loop directly:
+  `for s in $(command ls -t /tmp/ssh-*/agent.* 2>/dev/null); do [ -S "$s" ] && SSH_AUTH_SOCK=$s ssh-add -l >/dev/null 2>&1 && export SSH_AUTH_SOCK=$s && break; done`
+- **Don't inherit "push is blocked" from a handoff — test it.** One `ssh-add -l` settles it.
+  A stale blocker in a doc cost a whole session's worth of "can't push" here.
+- **After a rebase, a non-fast-forward rejection is expected, not a warning.** The remote holds
+  the pre-rebase lineage. Confirm nothing is lost by comparing **trees** (file lists + blob
+  shas), not `git cherry` — patch-ids drift across a rebase and it reports false positives.
+  Then `git push --force-with-lease=<branch>:$(git rev-parse FETCH_HEAD)`, never bare `--force`,
+  and tag the overwritten remote tip first so it stays recoverable past reflog expiry.
 - **Verify the push landed before dispatching CI against it** — `git ls-remote` sha == local sha.
   A rejected push plus a fired `gh workflow run` silently tests stale remote content.
 - **A branch that conflicts with its base makes GitHub skip every `pull_request` workflow.** It
