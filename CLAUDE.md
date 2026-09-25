@@ -97,6 +97,25 @@ Operational lessons to avoid re-paying time already spent. Keep this lean.
   title: PR_TITLE`), and GitHub appends the **PR** number to the subject. So `Fixes #N` belongs in
   the PR description, and an issue number in the PR title would collide with the appended one.
 
+## PR descriptions (what reviewers praised)
+Model: tenstorrent/tt-metal#57931 ("perfect description"). The body becomes the squash commit, so:
+- **Summary = the causal chain, then the fix in one sentence.** What the code asked for, what it
+  actually got, where (name the files / entry points affected), the silent mechanism
+  (`get_usable_topology` downgrades Ring to Linear), and the one observation that proves it
+  (Ring and linear give identical timings). Then "This PR does X." No history, no "we tried".
+- **One context line states the measurement once:** model, hardware + mesh, metric (traced device
+  time), base sha, "same build before and after", and what each column means in bullet order.
+- **Results as bullets, one per config, same column order**: `- chunk 2048: 92.6 -> 86.6 ms (-6%),
+  5.93 -> 5.63 s, 21.4 -> 20.6 s`. % only on the headline column. No markdown tables.
+- **One sentence explaining the trend** (why the gain grows with chunk size), so the numbers read
+  as a consequence rather than noise.
+- **Accuracy stated with its metric names and gate** (overall / RRMSE / min per-head, gate 0.91).
+- **Notes for reviewers answer the questions they would ask:** why a metric moved (and that it
+  moved both ways), the obvious alternative and its measured result (async: ~1 ms slower), what was
+  NOT measured and why (2D torus hangs without a descriptor), interactions with other PRs, and CI
+  links pinned to a sha with what each leg exercises.
+- Concrete over adjectives: every claim carries a number, a file, or a flag name. Short sentences.
+
 ## Disk on shared boxes
 - **`/` is shared with hundreds of users and fills without warning.** `du` under-reports badly:
   other users' home dirs are unreadable, so `du` totalling 45G against `df` 613G is expected, not a
