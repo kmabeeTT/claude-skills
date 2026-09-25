@@ -25,7 +25,14 @@ Operational lessons to avoid re-paying time already spent. Keep this lean.
   then verify `ss -ltnp | grep :<port>` is clear AND the device is free (see below). An
   `address already in use` on relaunch leaves an **orphan EngineCore holding the device**.
 - **Find/kill a process stuck holding a TT device** (next run can't acquire the chip):
-  - Who holds it: `fuser -v /dev/tenstorrent/*` or `for d in /dev/tenstorrent/*; do echo "$d"; fuser "$d"; done` (empty = free). Confirm which device a PID holds with `ls -l /proc/<pid>/fd | grep tenstorrent`.
+  - Who holds it: `fuser -v /dev/tenstorrent/*` or `for d in /dev/tenstorrent/*; do echo "$d"; fuser "$d"; done`. Confirm which device a PID holds with `ls -l /proc/<pid>/fd | grep tenstorrent`.
+  - **Since 2026-09-15, empty output does NOT mean the device is free** — only that *you*
+    aren't holding it. A `dev-sec` hardening baseline mounts `/proc` with `hidepid=2`, so
+    `ps`/`fuser`/`pkill` see only your own PIDs and another user's `EngineCore` on that chip
+    is invisible. If a device won't acquire but `fuser` shows nothing, suspect an unseen
+    other-user holder instead of debugging tt-xla/tt-metal. Needs root to fix; the ask is
+    `hidepid=2,gid=slurmusers` (the role's supported escape hatch) or `hidepid=1`. Config
+    management reverts a manual remount.
   - The holder is usually a `VLLM::EngineCore` (or a crashed pytest/python). Kill by PID: `kill -9 <pid>`; if it's a defunct/zombie, kill its parent.
   - Note: `ps` may show many `<defunct>` uvicorn zombies from prior runs — harmless; the live ones to kill are the non-defunct `VLLM::EngineCore` / `uvicorn main:app` / `python ...repro`.
 - **Env propagation:** custom env vars reach the EngineCore subprocess, but NOT the
