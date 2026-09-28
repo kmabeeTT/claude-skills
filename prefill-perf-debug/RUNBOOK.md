@@ -107,6 +107,10 @@ Attributing error:
   moved per-layer error by x1.00).
 - A fix that is correct at op level but worse in the model is a model-path bug until shown otherwise; op tests
   rarely cover the model's exact tile shapes (e.g. a 3-tile Q chunk takes a remainder path).
+  Reproduce it at op level with the model's exact call (shape, dtypes, KV-pad rotation, metadata), and compare against
+  the unmodified path, not against the same change on another path (both can be wrong the same way).
+- **A regression test must fail without the fix.** Revert the fix locally and run it; a smaller shape silently did not
+  reproduce the chunk-0 bug here.
 - **Changes that only move data should be bit-identical.** A new transport (multicast, bigger packets, a different
   exchange plan) must reproduce the base PCC to every printed digit on the same fabric; anything else is a delivery
   bug (wrong block, missed arrival), not noise. Measure on the fabric you ship: a fabric/topology change itself
@@ -179,6 +183,10 @@ Worked:
   free at per-core M 1-2 but ~7 ms/chunk at 4 (Gemma4 chunk 8192), and per-core M 7 (chunk 16384) overflows L1. The
   explicit MLP config was worth -11 / -27 ms at chunk 2048 / 4096 and ~0 at 8192.
 - Bigger chunks for long prompts (trades TTFT for throughput).
+- **Segmented accumulation for unsplit global SDPA** (`SDPAProgramConfig.segmented_accumulation`): each ring
+  iteration accumulates into a fresh sum and output, merged into a long-term state. The whole 4096-vs-8192 PCC gap was
+  the K split (4096 unsplit == 8192): 8192 min per-head 0.9112 -> 0.9460 at +0.7% time. It buys attention
+  projections at LoFi: 8192 2.232 -> 2.120 s at 106k (-5%), 4096 -2.4%; nothing at 2048 (DRAM-bound projections).
 - **Open the fabric as FABRIC_1D_RING** (#57931): the Ring collectives were running as Linear. First chunk -6 / -10 /
   -15% at chunk 2048 / 4096 / 8192 (gain grows with all-reduce size); 256k -0.6 to -0.8 s. Sync CCL still beats
   async on the ring.
@@ -218,18 +226,14 @@ Known traps in the SDPA kernel:
   the unpack/pack builds.
 - L1: circular buffers must end below the lowest live L1 tensor, not just below the L1 size; the error names the
   address.
-- `binary_max_tile` (and `max_block`) use SFPLOADMACRO, whose shared macro state races the pack thread's softmax exp
-  (`exp_packthread_tile`). A merge that calls it between K steps hangs or corrupts intermittently in trace replay; the
-  K loop avoids it (its max rides the FPU reduce). Use a plain-SFPI max there; `TT_METAL_DISABLE_SFPLOADMACRO=1`
-  is the one-run check.
+- The chunked path masks K chunks past a query's position (-inf diag stamp) rather than skipping them, so at chunk 0
+  whole later shards are fully masked. Any restart of the online softmax (a new segment, a split) must start from a
+  finite running max: `exp_tile_first_column`'s range reduction turns exp(-inf - m) into garbage (~1e16), and the K
+  loop never feeds it -inf.
+- `binary_max_tile` / `max_block` use SFPLOADMACRO, whose state races the pack thread's exp; use a plain-SFPI max in
+  any merge that follows the K loop (`TT_METAL_DISABLE_SFPLOADMACRO=1` is the one-run check).
 
 Open:
-- Segmented accumulation for unsplit global SDPA (prototype, not yet a PR): per-ring-iteration
-  accumulators merged into a long-term state. The whole 4096-vs-8192 PCC gap was the K split (4096 unsplit == 8192);
-  seg at 8192 lifts min per-head 0.9112 -> 0.9456 (overall 0.974 -> 0.984) at no perf cost, which buys attention
-  projections at LoFi: 8192 132.2 -> 125.2 ms, 2.24 -> 2.11 s at 106k (-5.6%), 7.8 -> 7.4 s, PCC 0.9398. Needs:
-  the plain-SFPI merge max (trap above), and seg off at chunk 0 (a still-unexplained chunk-0 model bug on CP devices
-  0-6; chunk 0 has no prefix, so it gains nothing).
 - TP CCL (~25% of the floor at 8192) is link-bound; only overlap/fusion with matmuls would help.
 - Raising the power limit (hardware/ops decision).
 
