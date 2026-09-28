@@ -32,12 +32,11 @@ Claude will automatically use this skill when you mention storage estimation or 
 📖 [Documentation](hf-storage-estimate/SKILL.md)
 
 ### prefill-perf-debug
-**Chunked-prefill performance, as a repeatable funnel**
+**Chunked-prefill performance on TT multi-chip, gated on accuracy**
 
-Finds whether prefill time is going into the per-chunk cost or the prefix cost, which
-layers own each, which ops inside them, and — with approval — what those ops are bound
-by. Enforces twelve assertions (A1–A12) drawn from claims that were published and then
-retracted, so it refuses to say more than was measured.
+A human-readable runbook (cost model, measurement hygiene, per-layer PCC gating, the localization funnel, a
+lever catalogue with measured outcomes, SDPA kernel traps, and how to land the PR) plus small tools. The skill
+makes Claude read the runbook and hold to its gates.
 
 **Example phrases:**
 - "Why is TTFT so high?"
@@ -45,10 +44,7 @@ retracted, so it refuses to say more than was measured.
 - "Compare chunk size 2048 vs 8192"
 - "Is this a prefill perf regression?"
 
-Levels 0–2 are automated; level 3 (ablations) is assisted only. `validate.py` reproduces
-the published Gemma4 results offline as a regression test — 102 checks, no device time.
-
-📖 [Documentation](prefill-perf-debug/README.md) · [Method and traps](prefill-perf-debug/METHOD.md)
+📖 [Runbook](prefill-perf-debug/RUNBOOK.md) · [Tools](prefill-perf-debug/tools/README.md)
 
 ## How Skills Work
 
@@ -173,15 +169,10 @@ Then say: "Push my skills" and Claude will sync it to GitHub.
 │   ├── SKILL.md                 # Skill definition
 │   ├── estimate_storage.py      # Implementation
 │   └── README.md                # Additional docs
-└── prefill-perf-debug/          # Chunked-prefill perf funnel
-    ├── SKILL.md                 # The procedure Claude follows
-    ├── METHOD.md                # Why each assertion exists
-    ├── EXAMPLES.md              # Worked examples, real output
-    ├── ppd.py                   # CLI (probe/budget/level0-3/check/compare/analyze)
-    ├── assertions.py            # A1-A12 as checkable code
-    ├── validate.py              # Offline regression test vs published results
-    ├── profiles/                # Per-model harness descriptions
-    └── tests/run_tests.sh       # validate + CLI smoke + unit checks
+└── prefill-perf-debug/          # Chunked-prefill perf runbook + skill
+    ├── SKILL.md                 # Thin loader: read the runbook, follow its gates
+    ├── RUNBOOK.md               # The method (humans start here)
+    └── tools/                   # Queue helpers, fit, PCC compare, power sampler, accum sims
 ```
 
 ## Benefits
