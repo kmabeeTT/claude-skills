@@ -67,7 +67,7 @@ PY
 
 pcc () { local L=pcc_$1_c$2; local C=$2; shift 2; local BT=$O/$L.tmp; rm -rf $BT
   rm -f /dev/shm${RING}_0; waitchips; echo "=== $L start $(date +%T) env=$*"
-  (cd $W && { env "$@" TT_METAL_HOME=$W PYTHONPATH=$W/ttnn:$W GEMMA4_PCC_CHUNK_SIZE=$C timeout 3600 $PY -m pytest "models/demos/gemma4_d_p/tests/test_prefill_migration.py::test_prefill_migration[mock-256k]" -svv --basetemp=$BT -p no:cacheprovider < /dev/null; echo "### rc=$?"; } > $O/$L.log 2>&1)
+  (cd $W && { env "$@" TT_METAL_HOME=$W PYTHONPATH=$W/ttnn:$W GEMMA4_TEST_CHUNK_SIZE=$C timeout 3600 $PY -m pytest "models/demos/gemma4_d_p/tests/test_prefill_migration.py::test_prefill_migration[mock-256k]" -svv --basetemp=$BT -p no:cacheprovider < /dev/null; echo "### rc=$?"; } > $O/$L.log 2>&1)
   cp "$(find $BT -name runner.log | head -1)" $O/$L.runner.log 2>/dev/null
   echo "$L $(grep '^### rc' $O/$L.log) $(grep -E '^ *Overall' $O/$L.log | tr -s ' ') minpcc=$($PY $TOOLS/minpcc.py $O/$L.runner.log 2>/dev/null | awk '{print $2,$3}')"; }
 
