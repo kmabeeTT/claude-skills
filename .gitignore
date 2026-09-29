@@ -30,3 +30,8 @@ temp/
 
 # Claude Code plugin/skill bundle cache (not source)
 synced/
+
+# Secrets - never commit credentials
+.env
+*.env
+*.flag
