@@ -92,7 +92,16 @@ Never commit credentials to this repository.
 
 ## Setup
 
-The `Stop` hook must be registered in `~/.claude/settings.json`:
+The `Stop` hook must be registered in the user settings file,
+`${CLAUDE_CONFIG_DIR:-~/.claude}/settings.json` (on boxes that set
+`CLAUDE_CONFIG_DIR`, `~/.claude/settings.json` is **not** read). Run once per machine:
+
+```bash
+~/claude-skills/telegram-notify/install-hook.sh
+```
+
+It is idempotent, keeps every other setting, and replaces any older registration of
+this hook (such as a hardcoded `/Users/...` path). It writes:
 
 ```json
 {
@@ -102,7 +111,7 @@ The `Stop` hook must be registered in `~/.claude/settings.json`:
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/kmabee/claude-skills/telegram-notify/stop-hook.sh",
+            "command": "$HOME/claude-skills/telegram-notify/stop-hook.sh",
             "async": true
           }
         ]
@@ -112,11 +121,16 @@ The `Stop` hook must be registered in `~/.claude/settings.json`:
 }
 ```
 
+Hook commands run through a shell, so `$HOME` resolves on both macOS and Linux. A
+session that started before the hook was added picks it up after opening `/hooks`
+once or restarting.
+
 ## Troubleshooting
 
 Delivery attempts are logged to `~/.claude/telegram-notify.log`.
 
 - **Nothing sent:** check the flag file exists after arming, and that the hook is
-  registered in `settings.json`.
+  registered: `jq .hooks.Stop "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"`
+  (re-run `install-hook.sh` if not).
 - **`SEND FAILED` in the log:** credentials are wrong, expired, or the bot was
   never started by the user in Telegram. Send a test with `notify-telegram.sh`.

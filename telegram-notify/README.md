@@ -58,5 +58,6 @@ Never commit tokens to this repository.
 
 ## Setup
 
-Register the Stop hook in `~/.claude/settings.json` — see the Setup section of
+Register the Stop hook with `./install-hook.sh` (writes to
+`${CLAUDE_CONFIG_DIR:-~/.claude}/settings.json`) — see the Setup section of
 `SKILL.md`. Logs land in `~/.claude/telegram-notify.log`.
