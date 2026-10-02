@@ -14,8 +14,8 @@ Warm single run (2026-10-02, 8192): ~121 s pytest / ~153 s wall = ~28 s python/p
 - Weight load is NOT disk: 34 GB of tensorbins read in 4 s warm; load_tensor_flatbuffer host-only is 1 ms/file
   (mmap). It is host->device writes (~7 GB/s aggregate; each TP shard written to all 8 CP rows). Already
   thread-pooled per chip. Only real fix: write one CP row and broadcast on-device (a project).
-- Cold page cache on /data NFS (~220 MB/s) makes the load ~300 s. /mnt/weka (wekafs) reads ~2.9 GB/s cold, but
-  is group storage-wg — kmabee had no write access as of 2026-10-02.
+- Cold page cache on /data NFS (~220 MB/s) makes the load ~300 s. /mnt/weka (~2.9 GB/s cold) now holds the cache
+  and the PCC golden — use them, see [[gemma4-weka-paths]].
 - `test_prefill_chunk_sweep_traced` (text_demo_prefill.py) runs GEMMA4_SWEEP_CHUNK_SIZES in one process,
   memoizing `ttnn.as_tensor(cache_file_name=...)` device weights: 3 chunk sizes in 237 s wall, per-chunk numbers
   within 0.3% of separate runs. `g4_perf all` uses it.

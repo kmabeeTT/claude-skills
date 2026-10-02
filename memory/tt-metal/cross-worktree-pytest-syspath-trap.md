@@ -13,3 +13,5 @@ pytest (prepend import mode) inserts the test rootdir at sys.path[0], ahead of P
 **Why:** nearly measured the wrong code when reusing one C++ build for several Python trees (2026-09-23).
 
 **How to apply:** run each config FROM its own tree (cd + TT_METAL_HOME = that tree), put only the built tree's `ttnn/` first on PYTHONPATH, and log `models.__file__` / `ttnn.__file__` per run as a witness. Also: a device-job wrapper must BLOCK until `/dev/tenstorrent/*` is free, not just report it — see [[tt-galaxy-fabric-run-hygiene]].
+
+**Kernel sources resolve from the cwd too (2026-10-02):** `resolve_path` in `tt_metal/impl/kernels/kernel.cpp` tries `cwd/<relative kernel path>` BEFORE TT_METAL_HOME. Running a full worktree with another tree's build compiled the worktree's `ring_joint_writer.cpp` against TT_METAL_HOME's headers -> `redefinition of 'struct KVPadRotationContext'` in the ncrisc/brisc JIT, and the test fails with "Runner exited with code 1". For a Python-only worktree, sparse-checkout it without kernels: `git sparse-checkout set --no-cone '/*' '!/tt_metal/' '!/ttnn/cpp/'`.

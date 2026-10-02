@@ -27,7 +27,7 @@
 - [Kernel edits break queued runs](kernel-source-edits-break-queued-runs.md) — kernels JIT at run start; edit as patches mid-queue; git rebase/checkout in the shared tree also counts, use plumbing; discarded if-constexpr still compiles
 - [pre-commit stashes unstaged work](precommit-stashes-unstaged-work.md) — a killed first commit hides your uncommitted changes in ~/.cache/pre-commit; plus black version skew
 - [Never edit a running bash script](never-edit-a-running-bash-script.md) — bash reads by file offset; a valid edit mid-run throws a phantom syntax error
-- [Cross-worktree pytest sys.path trap](cross-worktree-pytest-syspath-trap.md) — rootdir beats PYTHONPATH; run from the tree you mean, witness models/ttnn __file__, block on free devices
+- [Cross-worktree pytest sys.path trap](cross-worktree-pytest-syspath-trap.md) — rootdir beats PYTHONPATH; run from the tree you mean, witness models/ttnn __file__, block on free devices; kernels resolve from cwd first — sparse-checkout a Python-only worktree
 - [tt-metal push routes](tt-metal-push-routes.md) — SSH needs the forwarded SSO-authorized agent key (on-disk key fails SAML); HTTPS gh token lacks workflow scope (pushed range touching workflows is refused); SAML flips per box/day, probe with one real push; gate CI dispatch on ls-remote
 - [tt-metal PR body edits](tt-metal-pr-body-edits.md) — edit the live body; a bot appends CI Status and rewrites the body on every push and right after gh pr create
 - [tt-metal /test CI selector](tt-metal-test-command-ci-selector.md) — test-command.md maps diffs to CI; L2 nightly + additional_test_categories is mandatory for ops (WH+BH); a plain L2 dispatch skips every test job yet shows success
@@ -53,7 +53,7 @@
 - [Gemma4 M=256 matmul limits](gemma4-m256-matmul-limits.md) — 2k projections hit two ~100 us limits; only width-sharded in0 helps; bfp4/fused gate-up/subblocks null; dst_full_sync+fp32 bug
 - [Gemma4 PCC not bit-reproducible](gemma4-pcc-not-bit-reproducible.md) — at 8192 layers 0-12 match run to run, drift from layer 13; use a first-differing-layer check, not final PCC, for identity claims
 - [Gemma4 PCC test gate and /dev/shm](gemma4-pcc-test-gate-and-shm.md) — 0.91 gates the min per-head PCC, not overall; stale shared ring blocks runs; test strips PREFILL_* env; chunk size is ONLY GEMMA4_TEST_CHUNK_SIZE (lib.sh pcc helper got it wrong)
-- [Gemma4 perf run time budget](gemma4-perf-run-time-budget.md) — warm run = startup 28s + weights 65s (chip writes, not disk) + compile; one-process sweep; clear_program_cache between models or L1 CB clash; /mnt/weka not writable
+- [Gemma4 perf run time budget](gemma4-perf-run-time-budget.md) — warm run = startup 28s + weights 65s (chip writes, not disk) + compile; one-process sweep; clear_program_cache between models or L1 CB clash
 - [Gemma4 PP=4 measured](gemma4-pp4-scoping.md) — 1.15-1.17x at 256k (ported to the sep-07 freeze branch); TP=1 breaks concat_heads' L1; a later rank must clone its input; balance by global-layer count
 - [Gemma4 prefill box setup](gemma4-prefill-box-setup.md) — real weight/tt_cache paths on bh-glx; TP-tagged cache; never trust the legacy-cache fallback
 - [Gemma4 prefill chunk size](gemma4-prefill-chunk-size-win.md) — TTFT vs throughput table; 32768 best at 256k (11.28s), 4096 best single setting; never extrapolate the fit, and check a fit's point count (the 16384/32768 slopes were re-measured 2026-09-18)
@@ -93,3 +93,4 @@
 - [PP=4 headline has no steady state](pp4-throughput-headline-has-no-steady-state.md) — the tok/s number is a ramp median; slides 10% with the analyzer warmup arg
 - [Reload-ring mid-walk stalls](reload-ring-mid-walk-stalls.md) — 2 of 4 runs stopped mid-`_drive` with no error; check liveness FIRST, and why rank-silence is not a symptom
 - [tt-d-gen prefill migration is prebuilt](ttdgen-prefill-migration-prebuilt.md) — items 1-3 are verify-not-build; the chunk-table contract is 4 fields; d-gen main has no migration
+- [Gemma4 data on /mnt/weka](gemma4-weka-paths.md) — TT_CACHE_PATH + PREFILL_TRACE_DIR Weka paths (done 2026-10-02); root-owned, ask storage to refresh; cold PCC 26.6→12.5 min
