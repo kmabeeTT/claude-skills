@@ -2,6 +2,17 @@
 
 Operational lessons to avoid re-paying time already spent. Keep this lean.
 
+## Working conventions (Kyle)
+- **Never open a PR, even a draft, without asking.** Pushing the branch and writing the description to a file is fine.
+- **MD for GitHub:** no hard wrapping (one line per paragraph); drafted replies go under a bold heading, never `> `-quoted.
+- **Never write PASSED for a CI run** until `gh` shows it completed with that conclusion; count job conclusions too (a plain
+  L2 nightly dispatch skips every test and still goes green).
+- **No `rm -rf` / `rm -f` in run commands;** use fresh timestamped paths and unique names instead.
+- **Never edit a running bash script** — bash reads by offset, so the live run dies on a phantom syntax error.
+- **Before `kill`, confirm the PID's cmdline matches your own run.** Other Claude sessions run as the same UID; visible ≠ mine.
+- ALL_CAPS filenames for living reference docs (runbooks, trackers); snake_case for one-off records.
+- debug-docs: commit locally, push per milestone/topic, not per tracker tweak.
+
 ## TT serving servers (tt-inference-server / tt-media-server + tt-xla)
 - **Launch must run from the tt-xla venv**, because `venv/activate` and `TT_METAL_HOME`
   resolve from `$(pwd)`:

@@ -211,3 +211,17 @@ Or just say: "Check skill status" and Claude will use the skills-sync skill!
 **Format**: `SKILL.md` with YAML frontmatter
 **Synced via**: Git/GitHub
 **Activated**: Automatically by Claude based on context
+
+## Claude Code memory (`memory/`)
+
+Claude Code keeps auto-memory per working directory under `~/.claude/projects/<cwd-with-dashes>/memory/`. To share one git-versioned store across all tt-metal checkouts, each checkout's memory dir is a symlink to `memory/tt-metal/` here (same pattern as `CLAUDE.md`). Currently linked: `/data/kmabee/tt-metal`, `tt-metal-2`, `tt-metal-3`.
+
+To link a new checkout or worktree (start Claude in it once so the project dir exists, then):
+
+```bash
+P=/data/kmabee/.claude/projects/$(echo /path/to/checkout | tr '/' '-')
+[ -d "$P/memory" ] && mv "$P/memory" "$P/memory.pre-link"   # merge any notes in it by hand
+ln -s /home/kmabee/claude-skills/memory/tt-metal "$P/memory"
+```
+
+`memory/tt-metal/MEMORY.md` is the index (one line per note); each note has `name`/`description`/`metadata.type` frontmatter and links others as `[[name]]`. Notes must not contain secrets.
