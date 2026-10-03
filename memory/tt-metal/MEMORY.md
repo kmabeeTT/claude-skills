@@ -94,3 +94,4 @@
 - [Reload-ring mid-walk stalls](reload-ring-mid-walk-stalls.md) — 2 of 4 runs stopped mid-`_drive` with no error; check liveness FIRST, and why rank-silence is not a symptom
 - [tt-d-gen prefill migration is prebuilt](ttdgen-prefill-migration-prebuilt.md) — items 1-3 are verify-not-build; the chunk-table contract is 4 fields; d-gen main has no migration
 - [Gemma4 data on /mnt/weka](gemma4-weka-paths.md) — TT_CACHE_PATH + PREFILL_TRACE_DIR Weka paths (done 2026-10-02); root-owned, ask storage to refresh; cold PCC 26.6→12.5 min
+- [PR labels: no triage labels](pr-labels-no-triage.md) — topic labels only (perf, model: gemma-4); never set pr-priority / pr-risk / pr-complexity
