@@ -53,7 +53,7 @@
 - [Gemma4 M=256 matmul limits](gemma4-m256-matmul-limits.md) — 2k projections hit two ~100 us limits; only width-sharded in0 helps; bfp4/fused gate-up/subblocks null; dst_full_sync+fp32 bug
 - [Gemma4 PCC not bit-reproducible](gemma4-pcc-not-bit-reproducible.md) — at 8192 layers 0-12 match run to run, drift from layer 13; use a first-differing-layer check, not final PCC, for identity claims
 - [Gemma4 PCC test gate and /dev/shm](gemma4-pcc-test-gate-and-shm.md) — 0.91 gates the min per-head PCC, not overall; stale shared ring blocks runs; test strips PREFILL_* env; chunk size is ONLY GEMMA4_TEST_CHUNK_SIZE (lib.sh pcc helper got it wrong)
-- [Gemma4 perf run time budget](gemma4-perf-run-time-budget.md) — warm run = startup 28s + weights 65s (chip writes, not disk) + compile; one-process sweep; clear_program_cache between models or L1 CB clash
+- [Gemma4 perf run time budget](gemma4-perf-run-time-budget.md) — sweep 307→177 s: local venv (NFS imports 50 s/process), skip placeholder host work on warm builds, Weka; CP-split weights measured 40x but not pursued; clear_program_cache between models
 - [Gemma4 PP=4 measured](gemma4-pp4-scoping.md) — 1.15-1.17x at 256k (ported to the sep-07 freeze branch); TP=1 breaks concat_heads' L1; a later rank must clone its input; balance by global-layer count
 - [Gemma4 prefill box setup](gemma4-prefill-box-setup.md) — real weight/tt_cache paths on bh-glx; TP-tagged cache; never trust the legacy-cache fallback
 - [Gemma4 prefill chunk size](gemma4-prefill-chunk-size-win.md) — TTFT vs throughput table; 32768 best at 256k (11.28s), 4096 best single setting; never extrapolate the fit, and check a fit's point count (the 16384/32768 slopes were re-measured 2026-09-18)

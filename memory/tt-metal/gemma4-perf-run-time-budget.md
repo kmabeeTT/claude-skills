@@ -36,3 +36,12 @@ PCC storage A/B (2026-10-02, chunk 8192, pre-#59039 code, both cold via fadvise 
 - A today (/data weights + /mnt/models golden): 1599 s; weights 210 s; compare phase 18 min (comparison 892 s).
 - B local copy (~/weka_trial, mirrors /mnt/weka layout): 749 s; weights 53 s; compare 6.2 min (comparison 184 s).
 Readback (~205 s) is chip->host and unaffected. #59039 (Asif, parallel preadv + prefetch) is measured warm only.
+
+2026-10-03 speedups (sweep 2k/4k/8k warm on Weka: 307 s -> 177 s wall):
+- Rebuild host waste: `create_rope_caches` randn(1, max_seq_len, hidden) dummy (6 s) and `load_attention_weights`
+  reshuffling placeholder Q/K/V/O on a warm cache (~8 s). Fixed in cfa37bc3147 on kmabee/gemma4-perf-chunk-sweep:
+  rebuild 22.7 -> 5.6 s, first build 67.6 -> 50 s. Profile builds with a pytest plugin that patches the module from
+  `pytest_collection_modifyitems` (item.module) -- patching in pytest_configure hits a different module object.
+- NFS venv imports cost 46-54 s per process even warm; local copy 4.6 s (`g4_localvenv`, ~/venvs/<tree>-python_env).
+- CP-split weight write + all_gather: 145 ms -> 3.3 ms per 122 MB weight, bit-identical 32/32, but needs a second
+  cache variant; deliberately not pursued.
