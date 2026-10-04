@@ -1,6 +1,7 @@
 ## Working with Kyle (conventions)
 - [Ask before opening PRs](ask-before-opening-prs.md) — never gh pr create (even draft) without asking; push branch + draft description
 - [MD written for GitHub](md-writing-for-github.md) — no hard wrapping; drafted replies unquoted under a bold heading; PR descriptions use bullet results, not tables (squash commit)
+- [Telegram is two-way](telegram-two-way.md) — send with runs_ringsdpa/tg_send.sh, read Kyle's replies with ~/scripts/tg_read.sh; ask there and poll instead of stopping
 - [CI status only when verified](ci-status-only-when-verified.md) — never write PASSED for a run until gh shows completed/success; check the model leg, not just the run
 - [Avoid rm in run commands](avoid-rm-in-run-commands.md) — no rm -rf/rm -f cleanup in run commands; use timestamped basetemp and unique ring names
 - [ALL_CAPS names for reference docs](allcaps-names-for-reference-docs.md) — working docs you reopen get ALL_CAPS; snake_case is for one-off investigation records
@@ -70,6 +71,7 @@
 - [Gemma4 variable chunk PoC](gemma4-variable-chunk-poc.md) — perf real but loses to fixed 8192 mid-range; functionally broken (multi-width build bug); small chunks never intrinsically better; policy is a sawtooth
 - [Ring SDPA segments need 1 Q chunk/core](ring-sdpa-seg-accum-one-q-per-core.md) — seg accumulation silently off when units > cores; 12288/q96 PCC fail
 - [Stack merge campaign 10-01](stack-merge-campaign-1001.md) — #58223 merged, #58224 still open (2026-10-02); after a compaction read debug-docs SESSION_STATE.md first
+- [Session state 10-03](session-state-1003.md) — after a compaction read SESSION_STATE_1003.md + the experiment ledger first; chips handed off 18:07 UTC 10-03
 
 ## Mistral Small 4 / PP=4 / disagg
 - [Mistral4 56,320 golden](mistral4-55k-golden.md) — staged on /mnt under blaze/mistralai, CI-green; SDPA gate; why the 0.999999 bar is unachievable
@@ -95,3 +97,4 @@
 - [tt-d-gen prefill migration is prebuilt](ttdgen-prefill-migration-prebuilt.md) — items 1-3 are verify-not-build; the chunk-table contract is 4 fields; d-gen main has no migration
 - [Gemma4 data on /mnt/weka](gemma4-weka-paths.md) — TT_CACHE_PATH + PREFILL_TRACE_DIR Weka paths (done 2026-10-02); root-owned, ask storage to refresh; cold PCC 26.6→12.5 min
 - [PR labels: no triage labels](pr-labels-no-triage.md) — topic labels only (perf, model: gemma-4); never set pr-priority / pr-risk / pr-complexity
+- [Shared kernel sources across ops](shared-kernel-sources-across-ops.md) — rotary_embedding_llama compute kernel is also built by rotary_embedding_indexed; grep path constants before changing a kernel arg contract
