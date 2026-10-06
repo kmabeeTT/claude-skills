@@ -1,7 +1,7 @@
 ## Working with Kyle (conventions)
 - [Ask before opening PRs](ask-before-opening-prs.md) — never gh pr create (even draft) without asking; push branch + draft description
 - [MD written for GitHub](md-writing-for-github.md) — no hard wrapping; drafted replies unquoted under a bold heading; PR descriptions use bullet results, not tables (squash commit)
-- [Telegram is two-way](telegram-two-way.md) — send with runs_ringsdpa/tg_send.sh, read Kyle's replies with ~/scripts/tg_read.sh; ask there and poll instead of stopping
+- [Telegram is two-way](telegram-two-way.md) — send with runs_ringsdpa/tg_send.sh, read replies with ~/scripts/tg_read.sh; env file is /home/kmabee/dotfiles/.tt-telegram.env (pass via TELEGRAM_ENV_FILE); ask there and poll instead of stopping
 - [CI status only when verified](ci-status-only-when-verified.md) — never write PASSED for a run until gh shows completed/success; check the model leg, not just the run
 - [Avoid rm in run commands](avoid-rm-in-run-commands.md) — no rm -rf/rm -f cleanup in run commands; use timestamped basetemp and unique ring names
 - [ALL_CAPS names for reference docs](allcaps-names-for-reference-docs.md) — working docs you reopen get ALL_CAPS; snake_case is for one-off investigation records

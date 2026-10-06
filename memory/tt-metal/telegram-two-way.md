@@ -11,3 +11,8 @@ metadata:
 Telegram is two-way since 2026-10-04. Send: `/data/kmabee/runs_ringsdpa/tg_send.sh "msg"`. Read Kyle's replies: `~/scripts/tg_read.sh` (prints `<UTC time> <text>` per new message from TELEGRAM_CHAT_ID and consumes them via `~/.tt-telegram.offset`; `--peek` shows without consuming, `--wait N` long-polls). Both read `~/.tt-telegram.env` and never print the token. The reader lives on `/home`, so it works when the /data quota is full.
 
 **How to apply:** when a question is pending to Kyle (approval to delete, which experiment next), Telegram it and poll `tg_read.sh` (e.g. a background `--wait 1800` loop) instead of stopping. A reply there is Kyle's real answer, the same as a chat message. Kyle asked for this on 2026-10-04: "let me answer things in the future". Related: [[session-state-1003]].
+
+
+**Env file location (Kyle, 2026-10-06): use `/home/kmabee/dotfiles/.tt-telegram.env`**, now and in future. `~/.tt-telegram.env` is a symlink to it, so the canonical path is the dotfiles one; pass it explicitly when the symlink is absent:
+`TELEGRAM_ENV_FILE=/home/kmabee/dotfiles/.tt-telegram.env /data/kmabee/runs_ringsdpa/tg_send.sh "msg"`.
+Both scripts honour `TELEGRAM_ENV_FILE`. On a freshly-provisioned box the dotfiles may not be in place yet and `tg_send.sh` dies with `No such file or directory`; there is also a copy at `/data/kmabee/.claude-notify/tt-telegram.env`, but prefer the dotfiles path.
