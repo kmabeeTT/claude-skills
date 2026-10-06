@@ -6,6 +6,8 @@ Usage:
 
 Writes the PNGs the config lists, plus:
   plotted_series.csv  every point that was plotted, with its source run
+  series_<milestone>.csv  one milestone on its own: every chunk of every chunk size, with
+                      token ranges and per-chunk / cumulative device time
   stats.md            per milestone and chunk size: first chunk, cumulative time at checkpoints,
                       and a linear fit of per-chunk time = fixed + slope * prefix. Paste from it
                       into the README instead of retyping numbers.
@@ -76,6 +78,7 @@ class Data:
                     prefix=[int(r["start_tok"]) / 1024 for r in rows],
                     cum=[float(r["cum_device_ms"]) / 1000 for r in rows],
                     dev=[float(r["device_ms"]) for r in rows],
+                    rows=rows,
                     src=(src, row, p[0] if p else 1))
         self.xmax = max(s["x"][-1] for s in self.series.values())
         self.ymax = max(s["cum"][-1] for s in self.series.values()) * 1.06
@@ -262,6 +265,18 @@ def write_stats(d, out_dir):
         for (ms, c), s in d.series.items():
             for x, dv, y in zip(s["x"], s["dev"], s["cum"]):
                 w.writerow([ms, c, *s["src"], x, dv, round(y, 4)])
+    for ms in d.cfg["milestones"]:
+        with open(out_dir / f"series_{ms}.csv", "w", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["chunk_size", "chunk_idx", "n_chunks", "start_tok", "end_tok", "chunk_device_ms",
+                        "cum_device_ms", "cum_device_s", "source", "row", "pass", "log"])
+            for c in d.chunks:
+                s = d.get(ms, c)
+                if not s:
+                    continue
+                for r in s["rows"]:
+                    w.writerow([c, r["chunk_idx"], r["n_chunks"], r["start_tok"], r["end_tok"], r["device_ms"],
+                                r["cum_device_ms"], round(float(r["cum_device_ms"]) / 1000, 4), *s["src"], r["log"]])
 
 
 def main():
@@ -283,7 +298,7 @@ def main():
         fns[ch["type"]](d, ch, out / ch["file"])
         print("wrote", out / ch["file"])
     write_stats(d, out)
-    print("wrote", out / "stats.md", "and", out / "plotted_series.csv")
+    print("wrote", out / "stats.md", out / "plotted_series.csv", "and series_<milestone>.csv")
 
 
 if __name__ == "__main__":
