@@ -46,6 +46,18 @@ makes Claude read the runbook and hold to its gates.
 
 📖 [Runbook](prefill-perf-debug/RUNBOOK.md) · [Tools](prefill-perf-debug/tools/README.md)
 
+### prefill-perf-charts
+**Time-to-context line charts from `[traced_perf]` prefill logs, published as a gist**
+
+Extracts per-chunk traced device time from prefill perf logs (local dirs or `*.tar.gz.b64` bundles in a gist), plots one curve per milestone x chunk size from a JSON config (by-chunk, compare, small multiples, per-chunk cost), writes `stats.md` with checkpoint values and a fixed + slope fit, and publishes a secret gist with the README listed first.
+
+**Example phrases:**
+- "Plot prefill time from first chunk to max context for 2k/4k/8k"
+- "Baseline vs latest prefill curves on one graph"
+- "Put the perf journey charts in a gist"
+
+📖 [Skill](prefill-perf-charts/SKILL.md) · [Example config](prefill-perf-charts/examples/gemma4_journey_1006.json)
+
 ## How Skills Work
 
 Skills use `SKILL.md` files with YAML frontmatter:

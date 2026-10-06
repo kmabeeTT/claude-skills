@@ -1,0 +1,45 @@
+{
+  "subtitle": "Gemma4-31B prefill, BH Galaxy 8x4 (CP8/TP4), traced device time summed per chunk",
+  "chunks": [2048, 4096, 8192],
+  "checkpoints_k": [32, 64, 128, 256],
+  "milestones": {
+    "baseline": {
+      "name": "Baseline: main before week 1 (115 W)",
+      "short": "baseline",
+      "style": "dotted",
+      "runs": {"2048": ["w0928", "R1_57453"], "4096": ["w0928", "R1_57453"], "8192": ["w0928", "R0_base"]},
+      "note": "R0 base only runs 8k; 2k/4k come from R1 (+ #57453, which made them possible). R1 8k == R0 8k."
+    },
+    "end_week1": {
+      "name": "End of week 1: main 6571688cf68 (130 W)",
+      "short": "end week1",
+      "style": "dashed",
+      "runs": {"2048": ["w1004", "R0_main"], "4096": ["w1004", "R0_main"], "8192": ["w1004", "R0_main"]}
+    },
+    "latest": {
+      "name": "Latest: week-2 combined stack, R5 (130 W)",
+      "short": "latest",
+      "style": "solid",
+      "runs": {"2048": ["w1004", "R5_plus_P5"], "4096": ["w1004", "R5_plus_P5"], "8192": ["w1004", "R5_plus_P5"]}
+    }
+  },
+  "charts": [
+    {"type": "by_chunk", "milestone": "latest", "file": "chart1_latest_by_chunk.png",
+     "title": "Latest (week 2 combined): time to prefill N tokens"},
+    {"type": "by_chunk", "milestone": "end_week1", "file": "chart2_end_week1_by_chunk.png",
+     "title": "End of week 1 (main 6571688cf68): time to prefill N tokens"},
+    {"type": "by_chunk", "milestone": "baseline", "file": "chart3_baseline_by_chunk.png",
+     "title": "Baseline (before week 1): time to prefill N tokens",
+     "note": "2k/4k: + #57453, the first build that runs them; 8k identical"},
+    {"type": "compare", "milestones": ["baseline", "latest"], "file": "chart4_baseline_vs_latest.png",
+     "title": "Baseline vs latest: time to prefill N tokens, all chunk sizes"},
+    {"type": "small_multiples", "milestones": ["baseline", "end_week1", "latest"],
+     "file": "chart5_by_chunk_small_multiples.png", "title": "Each chunk size across the three milestones",
+     "note": "Baseline 2k/4k = + #57453 (base could not run them)"},
+    {"type": "per_chunk", "milestones": ["baseline", "latest"], "file": "chart6_per_chunk_time_baseline_vs_latest.png",
+     "title": "Cost of each chunk grows with the context before it",
+     "subtitle": "Per-chunk traced device time vs context reached; linear growth here is why the cumulative curves bend upward"},
+    {"type": "compare", "milestones": ["baseline", "end_week1", "latest"], "file": "chart7_all_milestones.png",
+     "title": "Three milestones: time to prefill N tokens"}
+  ]
+}
