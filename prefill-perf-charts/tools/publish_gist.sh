@@ -5,7 +5,7 @@
 #  - the README is uploaded as 0_<NAME>.md; gists list files by name, and "0_" sorts first
 #    whether the ordering is case-sensitive or not ("chart1_..." vs "GEMMA4_..." is not).
 #  - gh gist create refuses binary files, so the gist is created from the text files
-#    (md/csv/py/json/sh/txt), then the PNGs are added with a git push.
+#    (md/csv/py/json/sh/txt), then the PNGs and any *.tar.gz log archives are added with a git push.
 #  - GIST_ID in the README is replaced with the new id, so image links of the form
 #    https://gist.githubusercontent.com/<user>/GIST_ID/raw/<file>.png resolve.
 #  - gh is used as the git credential helper for this clone/push only; the global git
@@ -34,11 +34,11 @@ url=$(cd "$stage" && gh gist create $pub -d "$desc" "$first" $(cd "$stage" && ls
 id="${url##*/}"
 echo "created $url"
 git -c credential.helper= -c "credential.helper=!gh auth git-credential" clone -q "https://gist.github.com/$id.git" "$stage/repo"
-cp "$dir"/*.png "$stage/repo/" 2>/dev/null || true
+cp "$dir"/*.png "$dir"/*.tar.gz "$stage/repo/" 2>/dev/null || true
 sed -i "s/GIST_ID/$id/g; s#gist.githubusercontent.com/[A-Za-z0-9-]*/$id#gist.githubusercontent.com/$user/$id#g" "$stage/repo/$first"
 (cd "$stage/repo" && git add -A && git commit -qm "Add charts" &&
     git -c credential.helper= -c "credential.helper=!gh auth git-credential" push -q)
-echo "pushed charts"
+echo "pushed charts and archives"
 bad=0
 for p in "$dir"/*.png; do
     [ -e "$p" ] || continue

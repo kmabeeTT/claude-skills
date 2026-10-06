@@ -23,6 +23,13 @@ Cumulative device time at <checkpoints> (s):
 Linear fit of per-chunk device time = fixed + slope × prefix (ms, ms per 1k tokens of prefix):
 - <chunk>: <milestone> F + S, …
 
+## Log
+`<model>_latest_<what>_log.tar.gz` holds the raw log behind the latest curves: `<row>/<file>.log`. <Test id>, <PASSED>. Built from <tag> (<sha>): <what is in it>, measured <date> on <box> at <power>. Its `[traced_perf] DEVICE` totals match the chart (<a / b / c ms>). The other milestones' logs are in <link>.
+
+```
+curl -sL https://gist.githubusercontent.com/<user>/GIST_ID/raw/<archive>.tar.gz | tar -xz
+```
+
 ## Method and files
 - Device time vs wall, and which tables match exactly.
 - Which pass is plotted and the pass-to-pass spread.
