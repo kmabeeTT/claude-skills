@@ -21,6 +21,8 @@
 - [BH Galaxy prefill is power-throttled](bh-galaxy-prefill-power-throttled.md) — AICLK ~1100-1250/1350 at 115 W TDP (raised to 130 W on 2026-09-29: re-baseline); stale/zero-data hacks look falsely fast; isolated-layer bench understates energy wins
 - [/data quota and tracy captures](data-quota-tracy-captures.md) — per-user quota; a capture is ~15 GB; truncated .git/index = quota; trim profiler/ after each capture
 - [/data checkout venv $HOME pin](data-checkout-venv-home-pin.md) — dangling python_env on a second box: repoint at /usr/bin/python3.10 (uv-python is gone); same for CMakeCache and stale PCH
+- [b03u08 device 24 is faulty](bh-glx-b02u08-dev16-dead.md) — repeatable: run hangs at first traced chunk BEFORE any reset, then POST_RESET fails on dev 24; b02u08 dev 16 same; arm a stall detector, lspci is not a health check
+- [Board + fleet smoke test](tt-board-smoke-test.md) — ~/scripts/tt_board_smoke.py (0.4s, stdlib) + tt_fleet_smoke.py (7 boxes ~1s over ssh stdin); sysfs attrs NOT under device/; detects hung, MISSING tray, nodata; strace-verified safe beside a live run
 
 ## Build, git, CI
 - [tt-metal build approach](tt-metal-build-approach.md) — host source build, not Docker; submodule/tee/SFPI traps
@@ -98,3 +100,6 @@
 - [Gemma4 data on /mnt/weka](gemma4-weka-paths.md) — TT_CACHE_PATH + PREFILL_TRACE_DIR Weka paths (done 2026-10-02); root-owned, ask storage to refresh; cold PCC 26.6→12.5 min
 - [PR labels: no triage labels](pr-labels-no-triage.md) — topic labels only (perf, model: gemma-4); never set pr-priority / pr-risk / pr-complexity
 - [Shared kernel sources across ops](shared-kernel-sources-across-ops.md) — rotary_embedding_llama compute kernel is also built by rotary_embedding_indexed; grep path constants before changing a kernel arg contract
+- [Power tier decides which measurement is valid](bh-galaxy-power-tier-measurement-validity.md) — 75W box: full clock ~40s then −26%; 256k inflates +20% but layer profiles match a 190W box to 0.03%; long-run A/B deltas are the trap
+- [Mistral4 TP4 perf A/B 10-05](mistral4-tp4-perf-compare-1005.md) — baseline vs Asif vs Alina branches + harness; asif -1.0% not -2.95%; Alina/local-disk runs still unmeasured
+- [Gemma4 PRs do not port to Mistral4](mistral4-gemma4-pr-portability.md) — no sliding window, no GELU, fabric already torus; K-split + seg-acc measured NULL (and proved to engage); next lever is MoE
