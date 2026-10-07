@@ -6,6 +6,7 @@
 - [Avoid rm in run commands](avoid-rm-in-run-commands.md) — no rm -rf/rm -f cleanup in run commands; use timestamped basetemp and unique ring names
 - [ALL_CAPS names for reference docs](allcaps-names-for-reference-docs.md) — working docs you reopen get ALL_CAPS; snake_case is for one-off investigation records
 - [Debug-docs is the doc home](debug-docs-location.md) — one canonical copy in ~/debug-docs/<topic>/; /data/kmabee copies only as throwaways for another box
+- [No worktrees for doc repos](no-worktrees-for-docs.md) — branch inside ~/prefill-docs itself; Kyle can't find worktrees elsewhere
 - [debug-docs: batch commits](debug-docs-batch-commits.md) — push per milestone/topic, not per tracker tweak; safe squash recipe if needed
 - [106k prefill metric](prefill-106k-metric.md) — mid-context number is 13 x 8k = 106,496 tokens, label it 106k
 
