@@ -36,3 +36,5 @@ What that does to each metric:
 **How to apply:** pick the instrument by duration, not by box. For op-level work use the layer profile even on a weak box. For anything quoting seconds at 256k, re-baseline on the same box in the same session and say which box it was. Sample `tt_aiclk` alongside the run (the wrapper in `runs_m4tp4_1006/run_variant.sh` does, chips 0/8/16/24 every 5 s) so the clock is part of the record — a number without its clock is unreadable later. Note the layer profile's own renderer warns that FLOPs% assumes 1350 MHz.
 
 Related: [[bh-galaxy-prefill-power-throttled]] (the 115→130 W re-baseline, and that an isolated-layer bench understates energy wins — the same effect seen from the other side), [[mistral4-tp4-perf-compare-1005]], [[tt-board-smoke-test]] (health is not occupancy: use tt-devs.sh for holders).
+
+**Box tiers (user, 2026-10-07):** bh-glx-120-c08u14 is an **8 kW** Galaxy; the Gemma4 perf-journey gist numbers came from a **14 kW** box, and no 14 kW box was available on 10-07. On c08u14 chunk-2048 256k device time was 13.77 s vs 10.30 s in the gist for the same code, so only same-box before/after deltas are valid there.

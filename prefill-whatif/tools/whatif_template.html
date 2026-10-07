@@ -1,0 +1,582 @@
+<title>__TITLE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* Layout: an instrument panel. Controls rail on top, readouts, then three linked charts and the gap table. */
+:root {
+  --bg: #f3f4f1;
+  --panel: #ffffff;
+  --ink: #18222b;
+  --muted: #5d6973;
+  --line: #d9ddd8;
+  --accent: #0d6e74;
+  --accent-ink: #ffffff;
+  --good: #2c7a3f;
+  --warn: #a35d00;
+  --c-matmul: #2f5f9e;
+  --c-gsdpa: #d0702a;
+  --c-lsdpa: #d9a92b;
+  --c-coll: #2a8a83;
+  --c-small: #8a7aa8;
+  --c-extra1: #7d8a3a;
+  --c-extra2: #b04a5a;
+  --c-host: #6f7780;
+  --f-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12171c; --panel: #1a2128; --ink: #e4e8ea; --muted: #97a3ac; --line: #2c353d;
+    --accent: #4fb3b9; --accent-ink: #0d1418; --good: #6cc282; --warn: #e3a34a;
+    --c-matmul: #6c9ddc; --c-gsdpa: #ee9455; --c-lsdpa: #e8c35a; --c-coll: #5cc0b8; --c-small: #b3a5d0;
+    --c-extra1: #b2c063; --c-extra2: #e07d8c; --c-host: #a3abb3;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12171c; --panel: #1a2128; --ink: #e4e8ea; --muted: #97a3ac; --line: #2c353d;
+  --accent: #4fb3b9; --accent-ink: #0d1418; --good: #6cc282; --warn: #e3a34a;
+  --c-matmul: #6c9ddc; --c-gsdpa: #ee9455; --c-lsdpa: #e8c35a; --c-coll: #5cc0b8; --c-small: #b3a5d0;
+  --c-extra1: #b2c063; --c-extra2: #e07d8c; --c-host: #a3abb3;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 14px; line-height: 1.45; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 40px; display: grid; gap: 16px; }
+h1 { font-family: var(--f-display); font-weight: 600; font-size: 1.75rem; margin: 0; letter-spacing: 0.01em; text-wrap: balance; }
+h2 { font-family: var(--f-display); font-weight: 600; font-size: 1.1rem; margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); margin: 2px 0 0; }
+.mono, .num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px; min-width: 0; }
+.rail { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end; }
+.field { display: grid; gap: 6px; min-width: 0; }
+.label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; flex-wrap: wrap; }
+.seg button { font: inherit; border: 0; background: transparent; color: var(--ink); padding: 6px 12px; cursor: pointer; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.seg button:focus-visible, .btn:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn { font: inherit; border: 1px solid var(--accent); background: transparent; color: var(--accent); padding: 6px 12px; border-radius: 5px; cursor: pointer; }
+.btn.solid { background: var(--accent); color: var(--accent-ink); }
+select { font: inherit; padding: 5px 8px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); color: var(--ink); }
+.prompt { flex: 1 1 280px; }
+.prompt-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.prompt-row input[type=range] { flex: 1 1 160px; min-width: 120px; }
+input[type=range] { accent-color: var(--accent); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { font: inherit; font-size: 0.8rem; border: 1px solid var(--line); background: transparent; color: var(--muted); border-radius: 999px; padding: 2px 9px; cursor: pointer; }
+.viewdesc { color: var(--muted); font-size: 0.85rem; margin: 0; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.tile { display: grid; gap: 4px; align-content: start; }
+.tile .v { font-family: var(--f-mono); font-size: 1.6rem; font-weight: 500; }
+.tile .meta { font-size: 0.8rem; color: var(--muted); display: grid; gap: 2px; }
+.pill { display: inline-block; font-family: var(--f-mono); font-size: 0.75rem; padding: 1px 7px; border-radius: 999px; border: 1px solid currentColor; }
+.pill.good { color: var(--good); } .pill.warn { color: var(--warn); }
+.whatif { display: grid; gap: 12px; }
+.whatif-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.whatif-head .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.knobs { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.knob { border: 1px solid var(--line); border-radius: 5px; padding: 10px; display: grid; gap: 8px; border-top: 3px solid var(--kc, var(--line)); min-width: 0; }
+.knob h3 { margin: 0; font-size: 0.9rem; font-weight: 600; }
+.knob .row { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; align-items: center; }
+.knob .row input { grid-column: 1 / -1; width: 100%; }
+.knob .row .val { font-family: var(--f-mono); font-size: 0.85rem; }
+.knob .today { font-size: 0.75rem; color: var(--muted); }
+.charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 16px; }
+.chartbox { position: relative; height: 300px; }
+.chartbox.short { height: 220px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.8rem; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; background: var(--sw); vertical-align: -1px; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { font-weight: 600; color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+td.num { font-family: var(--f-mono); }
+.sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; background: var(--sw); }
+.bar { display: inline-block; height: 8px; background: var(--accent); border-radius: 2px; vertical-align: middle; }
+.notes { color: var(--muted); font-size: 0.82rem; display: grid; gap: 6px; margin: 0; padding-left: 18px; }
+.head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: end; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="head">
+    <div>
+      <h1 id="title"></h1>
+      <p class="sub" id="subtitle"></p>
+    </div>
+  </header>
+
+  <section class="panel rail" aria-label="Controls">
+    <div class="field">
+      <span class="label">Chunk size</span>
+      <div class="seg" id="chunkSeg" role="group" aria-label="Chunk size"></div>
+    </div>
+    <div class="field">
+      <span class="label">View</span>
+      <div class="seg" id="viewSeg" role="group" aria-label="View"></div>
+    </div>
+    <div class="field prompt">
+      <span class="label">Prompt length</span>
+      <div class="prompt-row">
+        <input type="range" id="promptLen" min="0" max="1000" step="1" aria-label="Prompt length">
+        <span class="num" id="promptVal"></span>
+      </div>
+      <div class="chips" id="promptChips"></div>
+    </div>
+  </section>
+  <p class="viewdesc" id="viewDesc"></p>
+
+  <section class="tiles" id="tiles" aria-label="Totals"></section>
+
+  <section class="panel whatif" id="whatifPanel" hidden aria-label="What-if controls">
+    <div class="whatif-head">
+      <div>
+        <h2>What-if knobs</h2>
+        <p class="viewdesc">Each knob starts at today's value (the latest measured stack). Times update as you drag.</p>
+      </div>
+      <div class="actions">
+        <label class="label" for="dramSel">DRAM</label>
+        <select id="dramSel"></select>
+        <button class="btn" id="resetBtn" type="button">Reset to today</button>
+        <span id="targetBtns" class="actions"></span>
+      </div>
+    </div>
+    <div class="knobs" id="knobs"></div>
+  </section>
+
+  <section class="charts">
+    <div class="panel">
+      <div class="head"><h2>Time per chunk through the prompt</h2><div class="legend" id="legendA"></div></div>
+      <p class="viewdesc" id="chartANote"></p>
+      <div class="chartbox"><canvas id="chartA" aria-label="Per-chunk time, stacked by area"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="head"><h2>Time to reach each context length</h2><div class="legend" id="legendB"></div></div>
+      <p class="viewdesc">Cumulative prefill time. The marker is the selected prompt length.</p>
+      <div class="chartbox"><canvas id="chartB" aria-label="Cumulative prefill time vs context"></canvas></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="head"><h2 id="barsTitle">Where the time goes, by view</h2><div class="legend" id="legendC"></div></div>
+    <div class="chartbox short"><canvas id="chartC" aria-label="Total time by area for each view"></canvas></div>
+  </section>
+
+  <section class="panel">
+    <div class="head"><h2 id="gapTitle">Gap to target, by area</h2></div>
+    <p class="viewdesc" id="gapNote"></p>
+    <div class="tablewrap"><table id="gapTable"></table></div>
+  </section>
+
+  <section class="panel">
+    <h2>How this is computed</h2>
+    <ul class="notes" id="notes"></ul>
+  </section>
+</div>
+
+<script>
+const PROFILE = /*__PROFILE__*/null;
+(function () {
+  const P = PROFILE;
+  const $ = (id) => document.getElementById(id);
+  const WHATIF = "whatif";
+  const comps = P.components;
+  const layerCount = Object.fromEntries(P.layer_types.map((l) => [l.id, l.count]));
+  const chunkKeys = Object.keys(P.chunks).sort((a, b) => +a - +b);
+  const maxTokens = Math.max(...chunkKeys.flatMap((c) => P.chunks[c].checkpoints.map((x) => x.tokens)));
+  const minTokens = Math.min(1024, ...chunkKeys.map(Number));
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem("whatif:" + P.title + ":" + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem("whatif:" + P.title + ":" + k, JSON.stringify(v)); } catch (e) {} },
+  };
+
+  // ---------- state ----------
+  const views = P.presets.map((p) => ({ id: p.id, label: p.label, desc: p.desc, note: p.measured_note })).concat([
+    { id: WHATIF, label: "What-if", desc: "Starts from " + (P.presets.find((p) => p.id === P.whatif_base) || {}).label + ". Drag the knobs, or set a target." },
+  ]);
+  const S = {
+    chunk: store.get("chunk", chunkKeys[0]),
+    view: store.get("view", WHATIF),
+    tokens: store.get("tokens", 102400),
+    dram: store.get("dram", P.dram_options[0].gbs),
+    knobs: store.get("knobs", {}), // {chunk: {comp: {util, fixed, eff, pct}}}
+  };
+  if (!P.chunks[S.chunk]) S.chunk = chunkKeys[0];
+  if (!views.find((v) => v.id === S.view)) S.view = WHATIF;
+
+  // ---------- model ----------
+  // Schema v2: presets give per-layer, per-position (first / depth) time for every component id;
+  // work[L][compId] gives what the what-if model needs for that component on that layer type.
+  const nChunks = (C, tokens) => Math.max(1, Math.ceil(tokens / C));
+  // captures sit at 1-based chunk indices first_index (default 1) and depth_index; interpolate / extrapolate linearly
+  const lerp = (ch, a, b, k) => { const F = ch.first_index || 1; return a + (b - a) * (k - F) / Math.max(1, ch.depth_index - F); };
+  const bwOf = (op) => op.bw === "fabric" ? P.fabric_gbs : S.dram;
+  function opFloor(op) {  // us at 100% of the op's roofline
+    const c = op.gflop ? op.gflop * 1e3 / P.peaks[op.fid] : 0;
+    const m = op.mb ? op.mb * 1e3 / bwOf(op) : 0;
+    return Math.max(c, m);
+  }
+  function presetComp(ch, presetId, L, cid, k) {  // one layer's time for a component at chunk k
+    const lp = ch.presets[presetId].layers[L];
+    if (!lp) return 0;
+    return lerp(ch, (lp.first || {})[cid] || 0, (lp.depth || {})[cid] || 0, k);
+  }
+  function layersOf(ch, cid) { return P.layer_types.map((l) => l.id).filter((L) => ch.work[L] && ch.work[L][cid]); }
+  function sdpaGflop(ch, w, k) { return lerp(ch, w.gflop_first, w.gflop_depth, k); }
+  const fitCache = {};
+  function todayFit(C) {
+    const key = C + "|" + S.dram;
+    return fitCache[key] || (fitCache[key] = todayFitRaw(C));
+  }
+  function todayFitRaw(C) {
+    const ch = P.chunks[C], base = P.whatif_base, D = ch.depth_index, out = {};
+    for (const c of comps) {
+      const Ls = layersOf(ch, c.id);
+      if (c.model === "roofline") {
+        let floor = 0, meas = 0;
+        for (const L of Ls) for (const op of ch.work[L][c.id].ops) { floor += layerCount[L] * opFloor(op); meas += layerCount[L] * op.t_us; }
+        out[c.id] = { util: 100 * floor / meas };
+      } else if (c.model === "sdpa_rate") {
+        // fit fixed + GFLOP / rate on the layer-count-weighted sums of the first and depth captures
+        let t1 = 0, td = 0, g1 = 0, gd = 0, n = 0;
+        for (const L of Ls) {
+          const w = ch.work[L][c.id], cnt = layerCount[L], lp = ch.presets[base].layers[L];
+          t1 += cnt * lp.first[c.id]; td += cnt * lp.depth[c.id]; g1 += cnt * w.gflop_first; gd += cnt * w.gflop_depth; n += cnt;
+        }
+        let tf, fixed;
+        if (gd - g1 > 1e-6 && td > t1) { tf = (gd - g1) * 1e3 / (td - t1); fixed = (t1 - g1 * 1e3 / tf) / n; }
+        else { tf = (P.sdpa_fallback_rate_tflops || {})[c.id] || 50; fixed = ((t1 + td) / 2 - g1 * 1e3 / tf) / n; }
+        out[c.id] = { util: 100 * tf / P.peaks[c.peak], fixed: Math.max(0, fixed) };
+      } else if (c.model === "ref_ratio") {
+        let ref = 0, today = 0;
+        for (const L of Ls) {
+          const lp = ch.presets[base].layers[L];
+          ref += layerCount[L] * ch.work[L][c.id].ref_us;
+          today += layerCount[L] * (lp.first[c.id] + lp.depth[c.id]) / 2;
+        }
+        out[c.id] = { eff: 100 * ref / today };
+      } else {
+        let tgt = 0, today = 0;
+        for (const L of Ls) {
+          const lp = ch.presets[base].layers[L];
+          tgt += layerCount[L] * ch.work[L][c.id].target_us;
+          today += layerCount[L] * lp.first[c.id];
+        }
+        out[c.id] = { pct: 100, targetPct: today > 0 ? 100 * tgt / today : 100 };
+      }
+    }
+    return out;
+  }
+  function knobsFor(C) {
+    const fit = todayFit(C);
+    const saved = (S.knobs[C] || {});
+    const k = {};
+    for (const c of comps) k[c.id] = Object.assign({}, fit[c.id], saved[c.id] || {});
+    return k;
+  }
+  function targetKnobs(C, tp) {
+    const fit = todayFit(C), k = {};
+    for (const c of comps) {
+      const v = Object.assign({}, fit[c.id]);
+      const t = tp.values[c.id] || {};
+      for (const [key, val] of Object.entries(t)) v[key] = val === "target" ? fit[c.id].targetPct : val;
+      k[c.id] = v;
+    }
+    return k;
+  }
+  // time (us) of one component at chunk k for a view (preset id, or a knobs object)
+  function compTime(C, view, c, k) {
+    const ch = P.chunks[C], D = ch.depth_index;
+    if (typeof view === "string") {
+      let t = 0;
+      for (const lt of P.layer_types) t += lt.count * presetComp(ch, view, lt.id, c.id, k);
+      return t;
+    }
+    const kn = view[c.id], base = P.whatif_base, Ls = layersOf(ch, c.id);
+    let t = 0;
+    for (const L of Ls) {
+      const w = ch.work[L][c.id], n = layerCount[L], today = presetComp(ch, base, L, c.id, k);
+      if (c.model === "roofline") {
+        // modelled ops scale with the knob; the rest of the component's time stays at today's
+        let opsT = 0, opsF = 0;
+        for (const op of w.ops) { opsT += op.t_us; opsF += opFloor(op); }
+        // (today - opsT) can be slightly negative where the first chunk ran faster than the depth capture's ops
+        t += n * Math.max(0, opsF / (kn.util / 100) + today - opsT);
+      } else if (c.model === "sdpa_rate") {
+        t += n * (kn.fixed + sdpaGflop(ch, w, k) * 1e3 / (kn.util / 100 * P.peaks[c.peak]));
+      } else if (c.model === "ref_ratio") {
+        t += n * today * (todayFit(C)[c.id].eff / kn.eff);
+      } else {
+        t += n * today * kn.pct / 100;
+      }
+    }
+    return t;
+  }
+  // per-chunk series: {perComp: {id: [us...]}, total: [us...]}, for n chunks
+  function series(C, view, n) {
+    const perComp = {}; const total = new Array(n).fill(0);
+    for (const c of comps) {
+      perComp[c.id] = [];
+      for (let k = 1; k <= n; k++) { const t = compTime(C, view, c, k); perComp[c.id].push(t); total[k - 1] += t; }
+    }
+    return { perComp, total };
+  }
+  const sum = (a) => a.reduce((x, y) => x + y, 0);
+  function viewArg(C, id) {
+    if (id === "__t") return targetKnobs(C, P.target_presets[0]);
+    return id === WHATIF ? knobsFor(C) : id;
+  }
+
+  // ---------- formatting ----------
+  function fmtTime(us) { return us < 1e6 ? (us / 1e3).toFixed(1) + " ms" : (us / 1e6).toFixed(us < 1e7 ? 3 : 2) + " s"; }
+  function fmtTok(t) { return t >= 1024 ? (t / 1024).toFixed(t % 1024 ? 1 : 0) + "k" : String(t); }
+  const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const PALETTE = ["--c-matmul", "--c-gsdpa", "--c-lsdpa", "--c-coll", "--c-small", "--c-extra1", "--c-extra2", "--c-host"];
+  const compColor = (id) => { const i = comps.findIndex((c) => c.id === id); return cssVar((comps[i] && comps[i].color) || PALETTE[i % PALETTE.length]); };
+  const viewColor = (id, i) => id === WHATIF ? cssVar("--accent") : [cssVar("--muted"), cssVar("--c-extra2"), cssVar("--c-matmul"), cssVar("--c-extra1")][i % 4];
+
+  // ---------- controls ----------
+  function seg(el, items, current, onPick) {
+    el.innerHTML = "";
+    for (const it of items) {
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = it.label; b.setAttribute("aria-pressed", String(it.id === current));
+      b.addEventListener("click", () => onPick(it.id));
+      el.appendChild(b);
+    }
+  }
+  const logMin = Math.log(minTokens), logMax = Math.log(maxTokens);
+  const sliderToTok = (v) => Math.round(Math.exp(logMin + (logMax - logMin) * v / 1000));
+  const tokToSlider = (t) => Math.round(1000 * (Math.log(t) - logMin) / (logMax - logMin));
+
+  function renderControls() {
+    $("title").textContent = P.title;
+    $("subtitle").textContent = P.model + " · " + P.hardware;
+    seg($("chunkSeg"), chunkKeys.map((c) => ({ id: c, label: c })), S.chunk, (id) => { S.chunk = id; store.set("chunk", id); renderAll(); });
+    seg($("viewSeg"), views, S.view, (id) => { S.view = id; store.set("view", id); renderAll(); });
+    const v = views.find((x) => x.id === S.view);
+    $("viewDesc").textContent = v.desc + (v.note ? " " + v.note : "");
+    $("promptLen").value = tokToSlider(S.tokens);
+    const n = nChunks(+S.chunk, S.tokens);
+    $("promptVal").textContent = S.tokens.toLocaleString() + " tokens · " + n + " chunk" + (n > 1 ? "s" : "");
+    const chips = $("promptChips"); chips.innerHTML = "";
+    for (const cp of P.chunks[S.chunk].checkpoints) {
+      const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = cp.label;
+      b.addEventListener("click", () => { S.tokens = cp.tokens; store.set("tokens", S.tokens); renderAll(); });
+      chips.appendChild(b);
+    }
+    $("whatifPanel").hidden = S.view !== WHATIF;
+  }
+  $("promptLen").addEventListener("input", (e) => { S.tokens = sliderToTok(+e.target.value); store.set("tokens", S.tokens); renderAll(); });
+
+  const dramSel = $("dramSel");
+  for (const d of P.dram_options) { const o = document.createElement("option"); o.value = d.gbs; o.textContent = d.label; dramSel.appendChild(o); }
+  dramSel.value = S.dram;
+  dramSel.addEventListener("change", () => { S.dram = +dramSel.value; store.set("dram", S.dram); delete (S.knobs[S.chunk] || {}).matmul; store.set("knobs", S.knobs); renderAll(); });
+  $("resetBtn").addEventListener("click", () => { S.knobs[S.chunk] = {}; store.set("knobs", S.knobs); renderAll(); });
+  const tb = $("targetBtns");
+  P.target_presets.forEach((tp) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "btn solid"; b.textContent = "Set " + tp.label.replace(/^Target:\s*/i, "target: ");
+    b.addEventListener("click", () => { S.knobs[S.chunk] = targetKnobs(S.chunk, tp); store.set("knobs", S.knobs); renderAll(); });
+    tb.appendChild(b);
+  });
+
+  function knobDefs(c) {
+    if (c.model === "roofline") return [{ key: "util", label: "% of roofline", min: 5, max: 100, step: 1, fmt: (v) => v.toFixed(0) + "%" }];
+    if (c.model === "sdpa_rate") return [
+      { key: "util", label: "% of " + (c.peak.includes("lofi") ? "LoFi" : "HiFi2") + " peak (math rate)", min: 2, max: 100, step: 1, fmt: (v) => v.toFixed(0) + "%" },
+      { key: "fixed", label: "fixed µs per layer", min: 0, max: 400, step: 1, fmt: (v) => v.toFixed(0) + " µs" }];
+    if (c.model === "ref_ratio") return [{ key: "eff", label: "% of reference speed", min: 20, max: 150, step: 1, fmt: (v) => v.toFixed(0) + "%" }];
+    return [{ key: "pct", label: "% of today's time", min: 0, max: 150, step: 1, fmt: (v) => v.toFixed(0) + "%" }];
+  }
+  function renderKnobs() {
+    const host = $("knobs"); host.innerHTML = "";
+    if (S.view !== WHATIF) return;
+    const C = S.chunk, fit = todayFit(C), kn = knobsFor(C);
+    for (const c of comps) {
+      const box = document.createElement("div"); box.className = "knob"; box.style.setProperty("--kc", compColor(c.id));
+      const h = document.createElement("h3"); h.textContent = c.label; box.appendChild(h);
+      for (const d of knobDefs(c)) {
+        const row = document.createElement("div"); row.className = "row";
+        const id = "k_" + c.id + "_" + d.key;
+        const lab = document.createElement("label"); lab.htmlFor = id; lab.textContent = d.label;
+        const val = document.createElement("span"); val.className = "val"; val.textContent = d.fmt(kn[c.id][d.key]);
+        const inp = document.createElement("input"); inp.type = "range"; inp.id = id; inp.min = d.min; inp.max = Math.max(d.max, Math.ceil(fit[c.id][d.key] * 1.2)); inp.step = d.step; inp.value = kn[c.id][d.key];
+        inp.addEventListener("input", () => {
+          S.knobs[C] = S.knobs[C] || {}; S.knobs[C][c.id] = Object.assign({}, knobsFor(C)[c.id], { [d.key]: +inp.value });
+          store.set("knobs", S.knobs); val.textContent = d.fmt(+inp.value); renderOutputs();
+        });
+        row.append(lab, val, inp); box.appendChild(row);
+      }
+      const today = document.createElement("div"); today.className = "today";
+      const f = fit[c.id];
+      today.textContent = "Today: " + knobDefs(c).map((d) => d.fmt(f[d.key])).join(", ") + (c.model === "scale" && Math.abs(f.targetPct - 100) > 0.5 ? " (target: " + f.targetPct.toFixed(0) + "%)" : "") + (c.hint ? ". " + c.hint : "");
+      box.appendChild(today);
+      host.appendChild(box);
+    }
+  }
+
+  // ---------- outputs ----------
+  let chartA, chartB, chartC;
+  const markerPlugin = {
+    id: "marker",
+    afterDatasetsDraw(chart, args, opts) {
+      if (opts.x == null) return;
+      const xs = chart.scales.x; const x = xs.getPixelForValue(opts.x);
+      if (x < xs.left || x > xs.right) return;
+      const ctx = chart.ctx; ctx.save(); ctx.strokeStyle = opts.color; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x, chart.chartArea.top); ctx.lineTo(x, chart.chartArea.bottom); ctx.stroke(); ctx.restore();
+    },
+  };
+  function baseOpts(yTitle, xTitle) {
+    const ink = cssVar("--muted"), grid = cssVar("--line");
+    return {
+      responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: "index", intersect: false },
+      plugins: { legend: { display: false }, marker: { x: null, color: ink } },
+      scales: {
+        x: { type: "linear", title: { display: !!xTitle, text: xTitle, color: ink }, ticks: { color: ink, callback: (v) => fmtTok(v) }, grid: { color: grid } },
+        y: { beginAtZero: true, title: { display: true, text: yTitle, color: ink }, ticks: { color: ink }, grid: { color: grid } },
+      },
+    };
+  }
+  function legend(el, items) { el.innerHTML = items.map((i) => `<span style="--sw:${i.color}">${i.label}</span>`).join(""); }
+
+  function renderTiles(C) {
+    const ch = P.chunks[C], view = S.view, arg = viewArg(C, view), base = P.whatif_base;
+    const tgt = P.target_presets[0] ? targetKnobs(C, P.target_presets[0]) : null;
+    const cps = ch.checkpoints.slice();
+    if (!cps.find((c) => nChunks(+C, c.tokens) === nChunks(+C, S.tokens))) cps.push({ label: "Selected prompt", tokens: S.tokens });
+    const host = $("tiles"); host.innerHTML = "";
+    const preset = ch.presets[view];
+    for (const cp of cps) {
+      const n = nChunks(+C, cp.tokens);
+      const t = sum(series(C, arg, n).total);
+      const tb = sum(series(C, base, n).total);
+      const tt = tgt ? sum(series(C, tgt, n).total) : null;
+      const div = document.createElement("div"); div.className = "panel tile";
+      const meas = preset && cp.measured_key ? preset.measured[cp.measured_key] : null;
+      const vsBase = view !== base ? (t / tb) : null;
+      div.innerHTML = `<span class="label">${cp.label} · ${(n * +C).toLocaleString()} tokens</span>
+        <span class="v">${fmtTime(t)}</span>
+        <span class="meta">
+          ${meas != null ? `<span>Measured: <span class="num">${meas} ${cp.unit}</span></span>` : ""}
+          ${vsBase != null ? `<span>vs ${views.find((v) => v.id === base).label}: <span class="pill ${vsBase <= 1 ? "good" : "warn"}">${vsBase.toFixed(2)}x</span></span>` : ""}
+          ${tt != null ? `<span>vs target: <span class="pill ${t / tt <= 1.05 ? "good" : "warn"}">${(t / tt).toFixed(2)}x</span> <span class="num">(${fmtTime(tt)})</span></span>` : ""}
+        </span>`;
+      host.appendChild(div);
+    }
+  }
+
+  function renderCharts(C) {
+    const ch = P.chunks[C], arg = viewArg(C, S.view);
+    const nMax = nChunks(+C, maxTokens);
+    const sA = series(C, arg, nMax);
+    const xs = Array.from({ length: nMax }, (_, i) => (i + 1) * +C);
+    const dsA = comps.map((c) => ({
+      label: c.label, data: sA.perComp[c.id].map((v, i) => ({ x: xs[i], y: v / 1e3 })), fill: true, stack: "s",
+      backgroundColor: compColor(c.id) + "cc", borderColor: compColor(c.id), borderWidth: 1, pointRadius: 0, tension: 0,
+    }));
+    let note = "Stacked by area, ms per chunk. Only global SDPA grows with the prefix.";
+    if (S.view !== P.whatif_base) {
+      const sb = series(C, P.whatif_base, nMax);
+      dsA.push({ label: views.find((v) => v.id === P.whatif_base).label + " total", data: sb.total.map((v, i) => ({ x: xs[i], y: v / 1e3 })), fill: false, stack: "cmp",
+        borderColor: cssVar("--ink"), borderDash: [5, 4], borderWidth: 1.5, pointRadius: 0 });
+      note += " Dashed line: " + views.find((v) => v.id === P.whatif_base).label + " total.";
+    }
+    $("chartANote").textContent = note;
+    const oA = baseOpts("ms per chunk", "prompt position (tokens)");
+    oA.scales.y.stacked = true; oA.plugins.marker.x = nChunks(+C, S.tokens) * +C;
+    oA.plugins.tooltip = { callbacks: { title: (it) => "chunk ending at " + fmtTok(it[0].parsed.x), label: (it) => it.dataset.label + ": " + it.parsed.y.toFixed(2) + " ms" } };
+    if (chartA) chartA.destroy();
+    chartA = new Chart($("chartA"), { type: "line", data: { datasets: dsA }, options: oA, plugins: [markerPlugin] });
+    legend($("legendA"), comps.map((c) => ({ label: c.label, color: compColor(c.id) })));
+
+    const dsB = views.map((v, i) => {
+      const s = series(C, viewArg(C, v.id), nMax).total; let acc = 0;
+      return { label: v.label, data: s.map((t, j) => ({ x: xs[j], y: (acc += t) / 1e6 })), borderColor: viewColor(v.id, i), backgroundColor: viewColor(v.id, i),
+        borderWidth: v.id === S.view ? 3 : 1.5, pointRadius: 0, fill: false };
+    });
+    const tgt = P.target_presets[0] ? targetKnobs(C, P.target_presets[0]) : null;
+    if (tgt) { const s = series(C, tgt, nMax).total; let acc = 0; dsB.push({ label: P.target_presets[0].label, data: s.map((t, j) => ({ x: xs[j], y: (acc += t) / 1e6 })), borderColor: cssVar("--good"), borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, fill: false }); }
+    const oB = baseOpts("seconds", "context (tokens)"); oB.plugins.marker.x = nChunks(+C, S.tokens) * +C;
+    oB.plugins.tooltip = { callbacks: { title: (it) => fmtTok(it[0].parsed.x) + " tokens", label: (it) => it.dataset.label + ": " + it.parsed.y.toFixed(3) + " s" } };
+    if (chartB) chartB.destroy();
+    chartB = new Chart($("chartB"), { type: "line", data: { datasets: dsB }, options: oB, plugins: [markerPlugin] });
+    legend($("legendB"), dsB.map((d) => ({ label: d.label, color: d.borderColor })));
+
+    const n = nChunks(+C, S.tokens);
+    const rows = views.map((v) => ({ v, s: series(C, viewArg(C, v.id), n) }));
+    if (tgt) rows.push({ v: { id: "target", label: P.target_presets[0].label }, s: series(C, tgt, n) });
+    const unitS = sum(rows[0].s.total) > 2e6;
+    const dsC = comps.map((c) => ({ label: c.label, data: rows.map((r) => sum(r.s.perComp[c.id]) / (unitS ? 1e6 : 1e3)), backgroundColor: compColor(c.id), stack: "s" }));
+    const ink = cssVar("--muted"), grid = cssVar("--line");
+    if (chartC) chartC.destroy();
+    chartC = new Chart($("chartC"), { type: "bar", data: { labels: rows.map((r) => r.v.label), datasets: dsC },
+      options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: (it) => it.dataset.label + ": " + it.parsed.x.toFixed(unitS ? 3 : 1) + (unitS ? " s" : " ms") } } },
+        scales: { x: { stacked: true, title: { display: true, text: unitS ? "seconds" : "ms", color: ink }, ticks: { color: ink }, grid: { color: grid } },
+                  y: { stacked: true, ticks: { color: ink }, grid: { display: false } } } } });
+    $("barsTitle").textContent = "Where the time goes at " + (n * +C).toLocaleString() + " tokens, by view";
+    legend($("legendC"), comps.map((c) => ({ label: c.label, color: compColor(c.id) })));
+  }
+
+  function utilOf(C, view, c, n) {
+    // effective util over the prompt, on the same basis as the knob
+    const ch = P.chunks[C], arg = viewArg(C, view), D = ch.depth_index, Ls = layersOf(ch, c.id);
+    const tSum = sum(Array.from({ length: n }, (_, i) => compTime(C, arg, c, i + 1)));
+    if (c.model === "roofline") {
+      // floor of the modelled ops over (time - the unmodelled rest, held at today's)
+      let floor = 0, rest = 0;
+      for (const L of Ls) {
+        const w = ch.work[L][c.id]; let opsT = 0;
+        for (const op of w.ops) { floor += layerCount[L] * opFloor(op) * n; opsT += op.t_us; }
+        for (let k = 1; k <= n; k++) rest += layerCount[L] * (presetComp(ch, P.whatif_base, L, c.id, k) - opsT);
+      }
+      return (100 * floor / Math.max(1e-9, tSum - rest)).toFixed(0) + "% roofline";
+    }
+    if (c.model === "sdpa_rate") {
+      let g = 0;
+      for (const L of Ls) for (let k = 1; k <= n; k++) g += layerCount[L] * sdpaGflop(ch, ch.work[L][c.id], k);
+      return (100 * g * 1e3 / tSum / P.peaks[c.peak]).toFixed(0) + "% peak";
+    }
+    const base = sum(Array.from({ length: n }, (_, i) => compTime(C, P.whatif_base, c, i + 1)));
+    if (c.model === "ref_ratio") return (todayFit(C)[c.id].eff * base / tSum).toFixed(0) + "% ref";
+    return (100 * tSum / base).toFixed(0) + "% of today";
+  }
+
+  function renderGap(C) {
+    const tp = P.target_presets[0]; if (!tp) return;
+    const n = nChunks(+C, S.tokens), view = S.view, arg = viewArg(C, view), tgt = targetKnobs(C, tp);
+    const sv = series(C, arg, n), st = series(C, tgt, n);
+    const T = sum(sv.total), TT = sum(st.total), gap = T - TT;
+    const vlabel = views.find((v) => v.id === view).label;
+    $("gapTitle").textContent = "Gap to " + tp.label.replace(/^Target:\s*/i, "target (") + (/^Target:/i.test(tp.label) ? ")" : "") + ", by area";
+    $("gapNote").textContent = vlabel + " at " + (n * +C).toLocaleString() + " tokens: " + fmtTime(T) + " vs " + fmtTime(TT) + " (" + (T / TT).toFixed(2) + "x). Util is the effective value over the whole prompt.";
+    const maxShare = Math.max(...comps.map((c) => Math.max(0, sum(sv.perComp[c.id]) - sum(st.perComp[c.id])) / Math.max(gap, 1e-9)));
+    let html = `<thead><tr><th>Area</th><th>${vlabel} util</th><th>Target util</th><th>${vlabel}</th><th>Target</th><th>Ratio</th><th>Share of time</th><th>Share of gap</th><th></th></tr></thead><tbody>`;
+    for (const c of comps) {
+      const a = sum(sv.perComp[c.id]), b = sum(st.perComp[c.id]); const share = (a - b) / (gap || 1);
+      html += `<tr><td><span class="sw" style="--sw:${compColor(c.id)}"></span>${c.label}</td>
+        <td class="num">${utilOf(C, view, c, n)}</td><td class="num">${utilOf(C, "__t", c, n)}</td>
+        <td class="num">${fmtTime(a)}</td><td class="num">${fmtTime(b)}</td><td class="num">${(a / b).toFixed(2)}x</td>
+        <td class="num">${(100 * a / T).toFixed(0)}%</td><td class="num">${(100 * share).toFixed(0)}%</td>
+        <td><span class="bar" style="width:${Math.max(0, 80 * share / (maxShare || 1)).toFixed(0)}px"></span></td></tr>`;
+    }
+    html += `<tr><td><strong>Total</strong></td><td></td><td></td><td class="num"><strong>${fmtTime(T)}</strong></td><td class="num"><strong>${fmtTime(TT)}</strong></td><td class="num"><strong>${(T / TT).toFixed(2)}x</strong></td><td></td><td></td><td></td></tr></tbody>`;
+    $("gapTable").innerHTML = html;
+  }
+
+  function renderOutputs() { const C = S.chunk; renderTiles(C); renderCharts(C); renderGap(C); }
+  function renderAll() { renderControls(); renderKnobs(); renderOutputs(); }
+
+  $("notes").innerHTML = P.notes.map((n) => `<li>${n}</li>`).join("") + (P.sources ? `<li>Sources: <span class="mono">${P.sources}</span></li>` : "");
+  try { window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderAll); } catch (e) {}
+  new MutationObserver(renderAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  renderAll();
+})();
+</script>

@@ -1,0 +1,529 @@
+{
+ "schema": 2,
+ "title": "Mistral4 Prefill What-If",
+ "model": "Mistral-Small-4-119B chunked prefill (absorbed MLA, 128-expert MoE)",
+ "hardware": "BH Galaxy 8x4, single rank SP=8 x TP=4, chunk 5,120; measured on bh-glx-110-d07u02 (RevC, 130 W)",
+ "layer_types": [
+  {
+   "id": "L0",
+   "label": "Layer 0 (first rank, embeds)",
+   "count": 1
+  },
+  {
+   "id": "L18",
+   "label": "Layers 1-35 (layer 18 captured)",
+   "count": 35
+  },
+  {
+   "id": "host",
+   "label": "Outside the layers",
+   "count": 1
+  }
+ ],
+ "components": [
+  {
+   "id": "sdpa",
+   "label": "SDPA (ring MLA)",
+   "model": "sdpa_rate",
+   "peak": "sdpa_lofi",
+   "color": "--c-gsdpa"
+  },
+  {
+   "id": "moe_move",
+   "label": "MoE dispatch + combine",
+   "model": "roofline",
+   "color": "--c-lsdpa",
+   "hint": "Roofline = fabric bytes at 50 GB/s"
+  },
+  {
+   "id": "moe_ffn",
+   "label": "MoE expert FFN + routing",
+   "model": "roofline",
+   "color": "--c-extra2",
+   "hint": "Expert FFN is modelled; routing ops stay at today's"
+  },
+  {
+   "id": "coll",
+   "label": "Collectives",
+   "model": "ref_ratio",
+   "color": "--c-coll"
+  },
+  {
+   "id": "matmul",
+   "label": "Matmuls (MLA)",
+   "model": "roofline",
+   "color": "--c-matmul"
+  },
+  {
+   "id": "small",
+   "label": "Norms + small ops",
+   "model": "scale",
+   "color": "--c-small",
+   "hint": "Target removes layout-only ops"
+  },
+  {
+   "id": "host",
+   "label": "Outside the layers",
+   "model": "scale",
+   "color": "--c-host",
+   "hint": "Measured per-chunk time minus the layers; mechanism not identified"
+  }
+ ],
+ "peaks": {
+  "LoFi": 663.6,
+  "HiFi2": 331.8,
+  "HiFi3": 221.2,
+  "HiFi4": 165.9,
+  "sdpa_lofi": 608.3,
+  "sdpa_hifi2": 304.1
+ },
+ "dram_options": [
+  {
+   "label": "RevC 512 GB/s",
+   "gbs": 512
+  },
+  {
+   "label": "RevB 384 GB/s",
+   "gbs": 384
+  }
+ ],
+ "fabric_gbs": 50,
+ "target_presets": [
+  {
+   "label": "Target: 70% util",
+   "values": {
+    "sdpa": {
+     "util": 70,
+     "fixed": 0
+    },
+    "moe_move": {
+     "util": 70
+    },
+    "moe_ffn": {
+     "util": 70
+    },
+    "matmul": {
+     "util": 70
+    },
+    "coll": {
+     "eff": 100
+    },
+    "small": {
+     "pct": "target"
+    },
+    "host": {
+     "pct": 100
+    }
+   }
+  }
+ ],
+ "presets": [
+  {
+   "id": "baseline",
+   "label": "Baseline",
+   "desc": "PR #56307 Mistral4 pipeline prefill (3c93c8b7c8b) on main a30a6a1b15d.",
+   "measured_note": "Measured on bh-glx-110-d07u02 (RevC, 130 W), same session as the captures. 256k = 261,120 tokens, one chunk extrapolated."
+  },
+  {
+   "id": "asif_alina",
+   "label": "+ Asif + Alina",
+   "desc": "Baseline + Asif's MLA / norm / MoE-op tuning + Alina's LoFi ring SDPA matmuls, 8256 B fabric packets, padding-aware gate (6fd8974f5c9).",
+   "measured_note": "Measured on bh-glx-110-d07u02 (RevC, 130 W), same session as the captures. 256k = 261,120 tokens, one chunk extrapolated."
+  }
+ ],
+ "whatif_base": "asif_alina",
+ "chunks": {
+  "5120": {
+   "first_index": 2,
+   "depth_index": 51,
+   "checkpoints": [
+    {
+     "label": "TTFT (1 chunk)",
+     "tokens": 5120,
+     "measured_key": "first_ms",
+     "unit": "ms"
+    },
+    {
+     "label": "100k",
+     "tokens": 102400,
+     "measured_key": "mid_s",
+     "unit": "s"
+    },
+    {
+     "label": "256k",
+     "tokens": 261120,
+     "measured_key": "full_s",
+     "unit": "s"
+    }
+   ],
+   "presets": {
+    "baseline": {
+     "layers": {
+      "L0": {
+       "first": {
+        "small": 334.4271249999999,
+        "coll": 874.8334687499998,
+        "matmul": 383.1580000000001,
+        "sdpa": 427.609,
+        "moe_ffn": 481.18199999999996,
+        "moe_move": 1370.747
+       },
+       "depth": {
+        "small": 332.14084375000004,
+        "coll": 834.32571875,
+        "matmul": 381.488,
+        "sdpa": 7598.19,
+        "moe_ffn": 503.65500000000003,
+        "moe_move": 1429.8580000000002
+       }
+      },
+      "L18": {
+       "first": {
+        "small": 316.50590625000007,
+        "coll": 1116.3014375,
+        "matmul": 384.035,
+        "sdpa": 426.241,
+        "moe_ffn": 504.364,
+        "moe_move": 1574.701
+       },
+       "depth": {
+        "small": 315.51443750000004,
+        "coll": 1109.6643437500002,
+        "matmul": 380.461,
+        "sdpa": 7596.6,
+        "moe_ffn": 503.682,
+        "moe_move": 1534.482
+       }
+      },
+      "host": {
+       "first": {
+        "host": 7852.851374999969
+       },
+       "depth": {
+        "host": 53306.21009374998
+       }
+      }
+     },
+     "measured": {
+      "first_ms": 157.2,
+      "mid_s": 4.2,
+      "full_s": 15.64
+     }
+    },
+    "asif_alina": {
+     "layers": {
+      "L0": {
+       "first": {
+        "small": 293.823875,
+        "coll": 791.7287187499999,
+        "matmul": 253.52200000000002,
+        "sdpa": 397.786,
+        "moe_ffn": 456.946,
+        "moe_move": 1266.166
+       },
+       "depth": {
+        "small": 293.09453125,
+        "coll": 764.59671875,
+        "matmul": 253.45,
+        "sdpa": 7394.547,
+        "moe_ffn": 488.474,
+        "moe_move": 1230.7359999999999
+       }
+      },
+      "L18": {
+       "first": {
+        "small": 277.43050000000005,
+        "coll": 993.6384375,
+        "matmul": 252.695,
+        "sdpa": 396.885,
+        "moe_ffn": 487.879,
+        "moe_move": 1399.537
+       },
+       "depth": {
+        "small": 277.85918749999996,
+        "coll": 1070.7061875,
+        "matmul": 252.53,
+        "sdpa": 7407.9,
+        "moe_ffn": 488.434,
+        "moe_move": 1434.097
+       }
+      },
+      "host": {
+       "first": {
+        "host": 5157.754593749996
+       },
+       "depth": {
+        "host": 11371.678625000059
+       }
+      }
+     },
+     "measured": {
+      "first_ms": 136.9,
+      "mid_s": 3.74,
+      "full_s": 13.77
+     }
+    }
+   },
+   "work": {
+    "L0": {
+     "matmul": {
+      "ops": [
+       {
+        "name": "640x1024x1024",
+        "gflop": 1.34217728,
+        "fid": "HiFi2",
+        "mb": 3.735552,
+        "bw": "dram",
+        "t_us": 15.417
+       },
+       {
+        "name": "640x1024x1024",
+        "gflop": 1.34217728,
+        "fid": "HiFi2",
+        "mb": 1.114112,
+        "bw": "dram",
+        "t_us": 11.57
+       },
+       {
+        "name": "640x64x256",
+        "gflop": 0.02097152,
+        "fid": "HiFi2",
+        "mb": 0.427008,
+        "bw": "dram",
+        "t_us": 16.1
+       },
+       {
+        "name": "640x1024x320",
+        "gflop": 0.4194304,
+        "fid": "HiFi2",
+        "mb": 2.06848,
+        "bw": "dram",
+        "t_us": 11.31
+       },
+       {
+        "name": "640x256x128",
+        "gflop": 0.04194304,
+        "fid": "HiFi2",
+        "mb": 0.526336,
+        "bw": "dram",
+        "t_us": 15.49
+       },
+       {
+        "name": "640x1024x4096",
+        "gflop": 5.36870912,
+        "fid": "HiFi2",
+        "mb": 5.767168,
+        "bw": "dram",
+        "t_us": 29.848
+       },
+       {
+        "name": "640x1024x128",
+        "gflop": 0.16777216,
+        "fid": "HiFi4",
+        "mb": 1.572864,
+        "bw": "dram",
+        "t_us": 22.741
+       },
+       {
+        "name": "640x4096x512",
+        "gflop": 2.68435456,
+        "fid": "HiFi2",
+        "mb": 8.126464,
+        "bw": "dram",
+        "t_us": 47.489
+       },
+       {
+        "name": "640x4096x512",
+        "gflop": 2.68435456,
+        "fid": "HiFi2",
+        "mb": 8.126464,
+        "bw": "dram",
+        "t_us": 43.272
+       },
+       {
+        "name": "640x512x4096",
+        "gflop": 2.68435456,
+        "fid": "HiFi2",
+        "mb": 8.126464,
+        "bw": "dram",
+        "t_us": 40.213
+       }
+      ]
+     },
+     "moe_move": {
+      "ops": [
+       {
+        "name": "Dispatch",
+        "mb": 20.97152,
+        "bw": "fabric",
+        "t_us": 474.414
+       },
+       {
+        "name": "Combine",
+        "mb": 20.97152,
+        "bw": "fabric",
+        "t_us": 756.322
+       }
+      ]
+     },
+     "moe_ffn": {
+      "ops": [
+       {
+        "name": "UnifiedRoutedExpertFfn",
+        "gflop": 128.84901888,
+        "fid": "LoFi",
+        "t_us": 473.144
+       }
+      ]
+     },
+     "coll": {
+      "ref_us": 308.55815483494007
+     },
+     "small": {
+      "target_us": 265.63153125
+     },
+     "sdpa": {
+      "gflop_first": 45.2984832,
+      "gflop_depth": 1525.0489344
+     }
+    },
+    "L18": {
+     "matmul": {
+      "ops": [
+       {
+        "name": "640x1024x1024",
+        "gflop": 1.34217728,
+        "fid": "HiFi2",
+        "mb": 3.735552,
+        "bw": "dram",
+        "t_us": 15.71
+       },
+       {
+        "name": "640x1024x1024",
+        "gflop": 1.34217728,
+        "fid": "HiFi2",
+        "mb": 1.114112,
+        "bw": "dram",
+        "t_us": 11.547
+       },
+       {
+        "name": "640x64x256",
+        "gflop": 0.02097152,
+        "fid": "HiFi2",
+        "mb": 0.427008,
+        "bw": "dram",
+        "t_us": 16.124
+       },
+       {
+        "name": "640x1024x320",
+        "gflop": 0.4194304,
+        "fid": "HiFi2",
+        "mb": 2.06848,
+        "bw": "dram",
+        "t_us": 11.359
+       },
+       {
+        "name": "640x256x128",
+        "gflop": 0.04194304,
+        "fid": "HiFi2",
+        "mb": 0.526336,
+        "bw": "dram",
+        "t_us": 15.265
+       },
+       {
+        "name": "640x1024x4096",
+        "gflop": 5.36870912,
+        "fid": "HiFi2",
+        "mb": 5.767168,
+        "bw": "dram",
+        "t_us": 29.906
+       },
+       {
+        "name": "640x1024x128",
+        "gflop": 0.16777216,
+        "fid": "HiFi4",
+        "mb": 1.572864,
+        "bw": "dram",
+        "t_us": 22.542
+       },
+       {
+        "name": "640x4096x512",
+        "gflop": 2.68435456,
+        "fid": "HiFi2",
+        "mb": 8.126464,
+        "bw": "dram",
+        "t_us": 47.564
+       },
+       {
+        "name": "640x4096x512",
+        "gflop": 2.68435456,
+        "fid": "HiFi2",
+        "mb": 8.126464,
+        "bw": "dram",
+        "t_us": 43.012
+       },
+       {
+        "name": "640x512x4096",
+        "gflop": 2.68435456,
+        "fid": "HiFi2",
+        "mb": 8.126464,
+        "bw": "dram",
+        "t_us": 39.501
+       }
+      ]
+     },
+     "moe_move": {
+      "ops": [
+       {
+        "name": "Dispatch",
+        "mb": 20.97152,
+        "bw": "fabric",
+        "t_us": 654.793
+       },
+       {
+        "name": "Combine",
+        "mb": 20.97152,
+        "bw": "fabric",
+        "t_us": 779.304
+       }
+      ]
+     },
+     "moe_ffn": {
+      "ops": [
+       {
+        "name": "UnifiedRoutedExpertFfn",
+        "gflop": 128.84901888,
+        "fid": "LoFi",
+        "t_us": 472.439
+       }
+      ]
+     },
+     "coll": {
+      "ref_us": 308.55815483494007
+     },
+     "small": {
+      "target_us": 249.88518750000003
+     },
+     "sdpa": {
+      "gflop_first": 45.2984832,
+      "gflop_depth": 1525.0489344
+     }
+    },
+    "host": {
+     "host": {
+      "target_us": 5157.754593749996
+     }
+    }
+   }
+  }
+ },
+ "notes": [
+  "Reconstructed from per-layer captures: layer 0 + 35 x layer 18, at chunk 1 (KV 10,240) and chunk 50 (KV 261,120), linear in chunk index between them, plus the time outside the layers. It lands within ~1.5% of measured, partly by construction: the outside-the-layers bucket is measured per-chunk time minus the layers.",
+  "Captures and whole-model numbers: bh-glx-110-d07u02, RevC (512 GB/s DRAM), 130 W, 2026-10-07. Sustained clock ~1.28-1.30 GHz; percentages assume 1.35 GHz.",
+  "Roofline util is the slower of compute at the op's fidelity (120 cores, 1.35 GHz) and bytes over the bandwidth: DRAM for the MLA matmuls, fabric (50 GB/s) for MoE dispatch and combine. MoE routing ops and other unmodelled ops stay at today's time.",
+  "SDPA util is % of the ring SDPA's LoFi peak on 110 cores, applied to the absorbed-MLA FLOPs (QK width 320, PV width 256) on one device. Baseline ran SDPA at HiFi2; the what-if starts from Asif + Alina (LoFi).",
+  "Collectives: % of the in-tree Galaxy reference for the same bytes. The ReduceScatter after the MoE combine runs ~10x its reference; much of that is waiting for slower peers, not the collective itself.",
+  "Outside the layers: host staging, trace replay and MoE sub-device swaps (~53 ms per chunk at depth in the baseline, ~11 ms in Asif + Alina). The 70% target claims no gain there."
+ ],
+ "sources": "prefill-docs mistral4/perf_understand: PERF_VS_TARGET_MISTRAL4.md, README.md section 4b, harness/perf_vs_target/ (target.py, perf_vs_target_m4.json)"
+}

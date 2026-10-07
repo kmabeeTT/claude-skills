@@ -1,0 +1,879 @@
+{
+ "schema": 2,
+ "title": "Gemma4 Prefill What-If",
+ "model": "Gemma4-31B-it chunked prefill",
+ "hardware": "BH Galaxy 8x4 (CP=8 x TP=4, 32 chips), 130 W",
+ "layer_types": [
+  {
+   "id": "global",
+   "label": "Global attention",
+   "count": 10
+  },
+  {
+   "id": "sliding",
+   "label": "Sliding window",
+   "count": 50
+  }
+ ],
+ "components": [
+  {
+   "id": "matmul",
+   "label": "Matmuls",
+   "model": "roofline",
+   "color": "--c-matmul"
+  },
+  {
+   "id": "gsdpa",
+   "label": "Global SDPA",
+   "model": "sdpa_rate",
+   "peak": "sdpa_lofi",
+   "color": "--c-gsdpa"
+  },
+  {
+   "id": "lsdpa",
+   "label": "Sliding SDPA",
+   "model": "sdpa_rate",
+   "peak": "sdpa_hifi2",
+   "color": "--c-lsdpa"
+  },
+  {
+   "id": "coll",
+   "label": "Collectives",
+   "model": "ref_ratio",
+   "color": "--c-coll"
+  },
+  {
+   "id": "small",
+   "label": "Small ops",
+   "model": "scale",
+   "color": "--c-small",
+   "hint": "Target removes layout-only ops"
+  }
+ ],
+ "peaks": {
+  "LoFi": 663.6,
+  "HiFi2": 331.8,
+  "sdpa_lofi": 608.3,
+  "sdpa_hifi2": 304.1
+ },
+ "dram_options": [
+  {
+   "label": "RevC 512 GB/s",
+   "gbs": 512
+  },
+  {
+   "label": "RevB 384 GB/s",
+   "gbs": 384
+  }
+ ],
+ "fabric_gbs": 50,
+ "sdpa_fallback_rate_tflops": {
+  "lsdpa": 40.7
+ },
+ "target_presets": [
+  {
+   "label": "Target: 70% util",
+   "values": {
+    "matmul": {
+     "util": 70
+    },
+    "gsdpa": {
+     "util": 70,
+     "fixed": 0
+    },
+    "lsdpa": {
+     "util": 70,
+     "fixed": 0
+    },
+    "coll": {
+     "eff": 100
+    },
+    "small": {
+     "pct": "target"
+    }
+   }
+  }
+ ],
+ "presets": [
+  {
+   "id": "baseline",
+   "label": "Baseline",
+   "desc": "Before week 1's PRs: perf-journey R1 stack (main 09-28 without #57454 / #57931, with #57453).",
+   "measured_note": "Measured at 115 W TDP, mid-context = 106k wall (perf-journey week 1, '+ #57453' row). Other presets are 130 W."
+  },
+  {
+   "id": "week1",
+   "label": "Week 1",
+   "desc": "main 6571688cf68: adds #57454, #57931, #57979, #57998, #58032, #58033, #58223, #58224 and others.",
+   "measured_note": "Measured: perf-journey 10-04 row R0 (main), bh-glx-120-c03u08, 130 W. Mid-context = 100k wall."
+  },
+  {
+   "id": "week2",
+   "label": "Week 1 + Week 2",
+   "desc": "Week 1 plus P3 #59049, P4 #59195, P5 #59214, P6 #59221, P7 #59222 (e429a8414c1).",
+   "measured_note": "Measured: perf-journey 10-04 row R5 (e429a8414c1), bh-glx-120-c03u08, 130 W. Mid-context = 100k wall."
+  }
+ ],
+ "whatif_base": "week2",
+ "chunks": {
+  "2048": {
+   "depth_index": 127,
+   "checkpoints": [
+    {
+     "label": "TTFT (1 chunk)",
+     "tokens": 2048,
+     "measured_key": "first_ms",
+     "unit": "ms"
+    },
+    {
+     "label": "~100k",
+     "tokens": 102400,
+     "measured_key": "mid_s",
+     "unit": "s"
+    },
+    {
+     "label": "256k",
+     "tokens": 262144,
+     "measured_key": "full_s",
+     "unit": "s"
+    }
+   ],
+   "presets": {
+    "baseline": {
+     "layers": {
+      "global": {
+       "first": {
+        "matmul": 906.0,
+        "gsdpa": 260.0,
+        "coll": 256.0,
+        "small": 832.0
+       },
+       "depth": {
+        "matmul": 905.0,
+        "gsdpa": 14882.0,
+        "coll": 284.0,
+        "small": 828.0
+       }
+      },
+      "sliding": {
+       "first": {
+        "matmul": 832.0,
+        "lsdpa": 427.0,
+        "coll": 253.0,
+        "small": 547.0
+       },
+       "depth": {
+        "matmul": 831.0,
+        "lsdpa": 425.0,
+        "coll": 253.0,
+        "small": 546.0
+       }
+      }
+     },
+     "measured": {
+      "first_ms": 121.0,
+      "mid_s": 7.86,
+      "full_s": 25.5
+     }
+    },
+    "week1": {
+     "layers": {
+      "global": {
+       "first": {
+        "matmul": 555.0,
+        "gsdpa": 162.0,
+        "coll": 157.0,
+        "small": 247.0
+       },
+       "depth": {
+        "matmul": 552.0,
+        "gsdpa": 5354.0,
+        "coll": 173.0,
+        "small": 247.0
+       }
+      },
+      "sliding": {
+       "first": {
+        "matmul": 516.0,
+        "lsdpa": 206.0,
+        "coll": 155.0,
+        "small": 190.0
+       },
+       "depth": {
+        "matmul": 514.0,
+        "lsdpa": 204.0,
+        "coll": 153.0,
+        "small": 189.0
+       }
+      }
+     },
+     "measured": {
+      "first_ms": 63.5,
+      "mid_s": 3.845,
+      "full_s": 11.59
+     }
+    },
+    "week2": {
+     "layers": {
+      "global": {
+       "first": {
+        "matmul": 456.0,
+        "gsdpa": 163.0,
+        "coll": 177.0,
+        "small": 211.0
+       },
+       "depth": {
+        "matmul": 454.0,
+        "gsdpa": 5362.0,
+        "coll": 195.0,
+        "small": 210.0
+       }
+      },
+      "sliding": {
+       "first": {
+        "matmul": 419.0,
+        "lsdpa": 166.0,
+        "coll": 175.0,
+        "small": 156.0
+       },
+       "depth": {
+        "matmul": 419.0,
+        "lsdpa": 168.0,
+        "coll": 176.0,
+        "small": 157.0
+       }
+      }
+     },
+     "measured": {
+      "first_ms": 53.7,
+      "mid_s": 3.331,
+      "full_s": 10.3
+     }
+    }
+   },
+   "work": {
+    "global": {
+     "matmul": {
+      "ops": [
+       {
+        "name": "QKV",
+        "gflop": 12.683575296,
+        "mb": 26.320896,
+        "bw": "dram",
+        "fid": "HiFi2",
+        "t_us": 84.917
+       },
+       {
+        "name": "o_proj",
+        "gflop": 11.274289152,
+        "mb": 23.396352,
+        "bw": "dram",
+        "fid": "HiFi2",
+        "t_us": 78.908
+       },
+       {
+        "name": "gate (+GELU)",
+        "gflop": 14.797504512,
+        "mb": 30.707712,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 109.764
+       },
+       {
+        "name": "up",
+        "gflop": 14.797504512,
+        "mb": 30.707712,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 94.442
+       },
+       {
+        "name": "down",
+        "gflop": 14.797504512,
+        "mb": 30.707712,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 87.964
+       }
+      ]
+     },
+     "gsdpa": {
+      "gflop_first": 8.055160832,
+      "gflop_depth": 1090.386919424
+     },
+     "coll": {
+      "ref_us": 119.0
+     },
+     "small": {
+      "target_us": 140.0
+     }
+    },
+    "sliding": {
+     "matmul": {
+      "ops": [
+       {
+        "name": "QKV",
+        "gflop": 11.274289152,
+        "mb": 23.396352,
+        "bw": "dram",
+        "fid": "HiFi2",
+        "t_us": 84.368
+       },
+       {
+        "name": "o_proj",
+        "gflop": 5.637144576,
+        "mb": 11.698176,
+        "bw": "dram",
+        "fid": "HiFi2",
+        "t_us": 42.143
+       },
+       {
+        "name": "gate (+GELU)",
+        "gflop": 14.797504512,
+        "mb": 30.707712,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 109.386
+       },
+       {
+        "name": "up",
+        "gflop": 14.797504512,
+        "mb": 30.707712,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 94.593
+       },
+       {
+        "name": "down",
+        "gflop": 14.797504512,
+        "mb": 30.707712,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 88.188
+       }
+      ]
+     },
+     "lsdpa": {
+      "gflop_first": 2.147483648,
+      "gflop_depth": 2.147483648
+     },
+     "coll": {
+      "ref_us": 119.0
+     },
+     "small": {
+      "target_us": 126.0
+     }
+    }
+   }
+  },
+  "4096": {
+   "depth_index": 63,
+   "checkpoints": [
+    {
+     "label": "TTFT (1 chunk)",
+     "tokens": 4096,
+     "measured_key": "first_ms",
+     "unit": "ms"
+    },
+    {
+     "label": "~100k",
+     "tokens": 102400,
+     "measured_key": "mid_s",
+     "unit": "s"
+    },
+    {
+     "label": "256k",
+     "tokens": 262144,
+     "measured_key": "full_s",
+     "unit": "s"
+    }
+   ],
+   "presets": {
+    "baseline": {
+     "layers": {
+      "global": {
+       "first": {
+        "matmul": 1378.0,
+        "gsdpa": 645.0,
+        "coll": 474.0,
+        "small": 876.0
+       },
+       "depth": {
+        "matmul": 1380.0,
+        "gsdpa": 18548.0,
+        "coll": 503.0,
+        "small": 874.0
+       }
+      },
+      "sliding": {
+       "first": {
+        "matmul": 1118.0,
+        "lsdpa": 362.0,
+        "coll": 471.0,
+        "small": 586.0
+       },
+       "depth": {
+        "matmul": 1118.0,
+        "lsdpa": 359.0,
+        "coll": 472.0,
+        "small": 586.0
+       }
+      }
+     },
+     "measured": {
+      "first_ms": 156.1,
+      "mid_s": 5.04,
+      "full_s": 16.4
+     }
+    },
+    "week1": {
+     "layers": {
+      "global": {
+       "first": {
+        "matmul": 658.0,
+        "gsdpa": 411.0,
+        "coll": 281.0,
+        "small": 306.0
+       },
+       "depth": {
+        "matmul": 663.0,
+        "gsdpa": 7092.0,
+        "coll": 291.0,
+        "small": 303.0
+       }
+      },
+      "sliding": {
+       "first": {
+        "matmul": 609.0,
+        "lsdpa": 208.0,
+        "coll": 278.0,
+        "small": 232.0
+       },
+       "depth": {
+        "matmul": 611.0,
+        "lsdpa": 214.0,
+        "coll": 278.0,
+        "small": 231.0
+       }
+      }
+     },
+     "measured": {
+      "first_ms": 82.6,
+      "mid_s": 2.484,
+      "full_s": 7.71
+     }
+    },
+    "week2": {
+     "layers": {
+      "global": {
+       "first": {
+        "matmul": 623.0,
+        "gsdpa": 411.0,
+        "coll": 268.0,
+        "small": 267.0
+       },
+       "depth": {
+        "matmul": 624.0,
+        "gsdpa": 7093.0,
+        "coll": 274.0,
+        "small": 266.0
+       }
+      },
+      "sliding": {
+       "first": {
+        "matmul": 570.0,
+        "lsdpa": 214.0,
+        "coll": 269.0,
+        "small": 193.0
+       },
+       "depth": {
+        "matmul": 569.0,
+        "lsdpa": 206.0,
+        "coll": 269.0,
+        "small": 193.0
+       }
+      }
+     },
+     "measured": {
+      "first_ms": 74.7,
+      "mid_s": 2.291,
+      "full_s": 7.29
+     }
+    }
+   },
+   "work": {
+    "global": {
+     "matmul": {
+      "ops": [
+       {
+        "name": "QKV",
+        "gflop": 25.367150592,
+        "mb": 31.82592,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 109.163
+       },
+       {
+        "name": "o_proj",
+        "gflop": 22.548578304,
+        "mb": 23.396352,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 101.781
+       },
+       {
+        "name": "gate (+GELU)",
+        "gflop": 29.595009024,
+        "mb": 36.212736,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 147.401
+       },
+       {
+        "name": "up",
+        "gflop": 29.595009024,
+        "mb": 36.212736,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 124.408
+       },
+       {
+        "name": "down",
+        "gflop": 29.595009024,
+        "mb": 36.212736,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 140.291
+       }
+      ]
+     },
+     "gsdpa": {
+      "gflop_first": 32.216449024,
+      "gflop_depth": 2162.52022784
+     },
+     "coll": {
+      "ref_us": 213.0
+     },
+     "small": {
+      "target_us": 175.0
+     }
+    },
+    "sliding": {
+     "matmul": {
+      "ops": [
+       {
+        "name": "QKV",
+        "gflop": 22.548578304,
+        "mb": 28.901376,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 101.936
+       },
+       {
+        "name": "o_proj",
+        "gflop": 11.274289152,
+        "mb": 11.698176,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 54.804
+       },
+       {
+        "name": "gate (+GELU)",
+        "gflop": 29.595009024,
+        "mb": 36.212736,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 148.948
+       },
+       {
+        "name": "up",
+        "gflop": 29.595009024,
+        "mb": 36.212736,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 124.689
+       },
+       {
+        "name": "down",
+        "gflop": 29.595009024,
+        "mb": 36.212736,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 139.69
+       }
+      ]
+     },
+     "lsdpa": {
+      "gflop_first": 4.294967296,
+      "gflop_depth": 4.294967296
+     },
+     "coll": {
+      "ref_us": 213.0
+     },
+     "small": {
+      "target_us": 154.0
+     }
+    }
+   }
+  },
+  "8192": {
+   "depth_index": 31,
+   "checkpoints": [
+    {
+     "label": "TTFT (1 chunk)",
+     "tokens": 8192,
+     "measured_key": "first_ms",
+     "unit": "ms"
+    },
+    {
+     "label": "~100k",
+     "tokens": 102400,
+     "measured_key": "mid_s",
+     "unit": "s"
+    },
+    {
+     "label": "256k",
+     "tokens": 262144,
+     "measured_key": "full_s",
+     "unit": "s"
+    }
+   ],
+   "presets": {
+    "baseline": {
+     "layers": {
+      "global": {
+       "first": {
+        "matmul": 1165.0,
+        "gsdpa": 1691.0,
+        "coll": 873.0,
+        "small": 1077.0
+       },
+       "depth": {
+        "matmul": 1164.0,
+        "gsdpa": 25717.0,
+        "coll": 955.0,
+        "small": 1070.0
+       }
+      },
+      "sliding": {
+       "first": {
+        "matmul": 1035.0,
+        "lsdpa": 357.0,
+        "coll": 862.0,
+        "small": 744.0
+       },
+       "depth": {
+        "matmul": 1030.0,
+        "lsdpa": 351.0,
+        "coll": 854.0,
+        "small": 741.0
+       }
+      }
+     },
+     "measured": {
+      "first_ms": 194.1,
+      "mid_s": 3.23,
+      "full_s": 11.2
+     }
+    },
+    "week1": {
+     "layers": {
+      "global": {
+       "first": {
+        "matmul": 864.0,
+        "gsdpa": 1152.0,
+        "coll": 447.0,
+        "small": 444.0
+       },
+       "depth": {
+        "matmul": 861.0,
+        "gsdpa": 16406.0,
+        "coll": 488.0,
+        "small": 444.0
+       }
+      },
+      "sliding": {
+       "first": {
+        "matmul": 813.0,
+        "lsdpa": 349.0,
+        "coll": 448.0,
+        "small": 322.0
+       },
+       "depth": {
+        "matmul": 813.0,
+        "lsdpa": 358.0,
+        "coll": 442.0,
+        "small": 321.0
+       }
+      }
+     },
+     "measured": {
+      "first_ms": 123.1,
+      "mid_s": 2.086,
+      "full_s": 6.84
+     }
+    },
+    "week2": {
+     "layers": {
+      "global": {
+       "first": {
+        "matmul": 817.0,
+        "gsdpa": 1152.0,
+        "coll": 447.0,
+        "small": 391.0
+       },
+       "depth": {
+        "matmul": 814.0,
+        "gsdpa": 16407.0,
+        "coll": 486.0,
+        "small": 389.0
+       }
+      },
+      "sliding": {
+       "first": {
+        "matmul": 769.0,
+        "lsdpa": 319.0,
+        "coll": 438.0,
+        "small": 275.0
+       },
+       "depth": {
+        "matmul": 766.0,
+        "lsdpa": 328.0,
+        "coll": 434.0,
+        "small": 275.0
+       }
+      }
+     },
+     "measured": {
+      "first_ms": 114.5,
+      "mid_s": 1.966,
+      "full_s": 6.57
+     }
+    }
+   },
+   "work": {
+    "global": {
+     "matmul": {
+      "ops": [
+       {
+        "name": "QKV",
+        "gflop": 50.734301184,
+        "mb": 37.330944,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 136.726
+       },
+       {
+        "name": "o_proj",
+        "gflop": 45.097156608,
+        "mb": 42.795008,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 151.447
+       },
+       {
+        "name": "gate (+GELU)",
+        "gflop": 59.190018048,
+        "mb": 41.71776,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 197.792
+       },
+       {
+        "name": "up",
+        "gflop": 59.190018048,
+        "mb": 41.71776,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 155.75
+       },
+       {
+        "name": "down",
+        "gflop": 59.190018048,
+        "mb": 41.71776,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 175.516
+       }
+      ]
+     },
+     "gsdpa": {
+      "gflop_first": 128.857407488,
+      "gflop_depth": 4252.026011648
+     },
+     "coll": {
+      "ref_us": 402.0
+     },
+     "small": {
+      "target_us": 251.0
+     }
+    },
+    "sliding": {
+     "matmul": {
+      "ops": [
+       {
+        "name": "QKV",
+        "gflop": 45.097156608,
+        "mb": 34.4064,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 134.429
+       },
+       {
+        "name": "o_proj",
+        "gflop": 22.548578304,
+        "mb": 26.902528,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 102.994
+       },
+       {
+        "name": "gate (+GELU)",
+        "gflop": 59.190018048,
+        "mb": 41.71776,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 198.735
+       },
+       {
+        "name": "up",
+        "gflop": 59.190018048,
+        "mb": 41.71776,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 156.494
+       },
+       {
+        "name": "down",
+        "gflop": 59.190018048,
+        "mb": 41.71776,
+        "bw": "dram",
+        "fid": "LoFi",
+        "t_us": 176.067
+       }
+      ]
+     },
+     "lsdpa": {
+      "gflop_first": 8.589934592,
+      "gflop_depth": 8.589934592
+     },
+     "coll": {
+      "ref_us": 402.0
+     },
+     "small": {
+      "target_us": 222.0
+     }
+    }
+   }
+  }
+ },
+ "notes": [
+  "Times are reconstructed from per-layer captures (one global + one sliding layer, first chunk and near 256k depth), summed as 10 global + 50 sliding layers, linear in chunk index between the two captures. The reconstruction is within about 4% of measured end-to-end time.",
+  "Captures: bh-glx-120-c03u02, 2026-10-05, RevB board at 130 W (LAYER_PROFILES_3SETS.md). Whole-model measured numbers come from the perf-journey trackers.",
+  "Matmul util is % of the roofline: the slower of compute at the op's fidelity (120 cores, 1.35 GHz) and weight + activation DRAM traffic at the chosen bandwidth. At chunk 2048 (M = 256 rows per device) the matmuls are weight-streaming, so 70% FLOP util is out of reach there (max ~37% LoFi at full bandwidth).",
+  "SDPA util is % of the ring SDPA's 110-core peak at the kernel's fidelity (LoFi global, HiFi2 sliding), applied to useful causal FLOPs on the busiest device. 'Fixed' is the per-layer cost that doesn't scale with work (halo, setup).",
+  "Collectives: % of the in-tree Galaxy reference speed for the same bytes. Small ops: % of today's time; the target removes layout-only ops and half the global RoPE gather.",
+  "Long context runs under the 130 W cap (late-chunk clock ~1.2-1.3 GHz); the model doesn't apply a clock change."
+ ],
+ "sources": "~/prefill-docs/gemma4/perf_understand/: LAYER_PROFILES_3SETS.md, PERF_VS_TARGET_GEMMA4.md, harness/perf_vs_target/"
+}
