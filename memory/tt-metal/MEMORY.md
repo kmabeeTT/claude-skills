@@ -38,6 +38,7 @@
 - [Blaze prefill CI time budget](blaze-prefill-ci-time-budget.md) — 479/488 min used; budget, not code, gates a new model leg
 - [Host-only model tests have no CI home](host-only-model-tests-have-no-ci-home.md) — tests/torch/ in zero rows; models team has no cpu_medium grant
 - [Deepseek collection check](deepseek-collection-check.md) — 28346 expected; run it against an unbuilt checkout, and the 3 traps (32 chips per run, no node ids, stale board)
+- [Sourcing bashrc gives GH_TOKEN, not an agent](bashrc-sourcing-gh-token.md) — gh token is above the interactive guard (line 7) so `source ~/.bashrc` DOES auth gh in the Bash tool; fixagent is below it; gh auth is per-machine via dotfiles
 
 ## Profiling and measurement method
 - [Tracy profiling on tt-metal](tracy-profiling-tt-metal.md) — no rebuild needed; 4 traps that give wrong/empty results silently
