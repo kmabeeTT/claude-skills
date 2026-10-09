@@ -1,5 +1,7 @@
 ## Working with Kyle (conventions)
 - [Ask before opening PRs](ask-before-opening-prs.md) — never gh pr create (even draft) without asking; push branch + draft description
+- [prefill-docs push needs OK](prefill-docs-push-needs-ok.md) — never push prefill-docs without Kyle's thumbs up; commit locally on a branch and ask
+- [No force push after undraft](no-force-push-after-undraft.md) — once a PR is out of draft: one concise feedback commit on top, wait for Kyle before pushing or replying
 - [MD written for GitHub](md-writing-for-github.md) — no hard wrapping; drafted replies unquoted under a bold heading; PR descriptions use bullet results, not tables (squash commit)
 - [Telegram is two-way](telegram-two-way.md) — send with runs_ringsdpa/tg_send.sh, read replies with ~/scripts/tg_read.sh; env file is /home/kmabee/dotfiles/.tt-telegram.env (pass via TELEGRAM_ENV_FILE); ask there and poll instead of stopping
 - [CI status only when verified](ci-status-only-when-verified.md) — never write PASSED for a run until gh shows completed/success; check the model leg, not just the run
@@ -14,7 +16,7 @@
 - [Build host bh-glx-110-a10u08](build-host-bh-glx-110-a10u08.md) — shared 32-chip BH Galaxy, no sudo, NFS checkout, outside SLURM
 - [Shared tree, multiple sessions](shared-tree-multi-session.md) — other Claude sessions (even on other boxes, via NFS) use /data/kmabee/tt-metal-2 + chips; check ListAgents / queue.lock before mkb or device runs; tt-metal-3 is the second build tree, used by bh-glx-120-c03u08 (c02u02 sessions stay on tt-metal-2); override W and PY after sourcing helpers
 - [Visible process is not my process](visible-process-is-not-my-process.md) — hidepid visibility means same UID; other Claude sessions run as kmabee from other checkouts
-- [Device usage visibility](device-usage-visibility.md) — /proc/driver/tenstorrent/N/pids is the real owner check; four holder-checks that cannot fail under hidepid; SLURM+Grafana show kmabee's runs as idle
+- [Device usage visibility](device-usage-visibility.md) — use ~/scripts/tt-devs.sh ("N/32 chips claimed", UMD locks) as THE holder check; /proc/driver/tenstorrent/N/pids goes stale (one PID on all chips + kill -0 EPERM can still be free chips: cost a session 25 min on 10-09); SLURM+Grafana show kmabee's runs as idle
 - [Stale chip locks look like a container](stale-chip-locks-look-like-container.md) — dead-PID /dev/shm locks after a killed run; kill -0 the owner, glx_reset + rm locks; on c03u08 the lock files are akhan-owned so rm fails and stock waitchips reset-loops: use the runs_sasha/env.sh override
 - [Galaxy hard-kill needs glx_reset](glx-hard-kill-needs-reset.md) — silent 2-5x perf degradation, no error; budget two resets; re-check a minute after a reset; "Sysmem mapped at unexpected NOC address" with no holder = reset + wait ~1 min
 - [TT galaxy fabric run hygiene](tt-galaxy-fabric-run-hygiene.md) — glx_reset after hard kills, background device runs, the inverted fabric-link lease API
@@ -76,6 +78,9 @@
 - [Ring SDPA segments need 1 Q chunk/core](ring-sdpa-seg-accum-one-q-per-core.md) — seg accumulation silently off when units > cores; 12288/q96 PCC fail
 - [Stack merge campaign 10-01](stack-merge-campaign-1001.md) — #58223 merged, #58224 still open (2026-10-02); after a compaction read debug-docs SESSION_STATE.md first
 - [Session state 10-03](session-state-1003.md) — after a compaction read SESSION_STATE_1003.md + the experiment ledger first; chips handed off 18:07 UTC 10-03
+- [Gemma4 2k attack 10-08](gemma4-2k-attack-1008.md) — q128 + rect bands + two traces + sliding ksplit2 + GEGLU op: 256k 10.31→9.64 s, 100k 3.31→3.23 (2k-only knobs); CCL = 8 ms/chunk ceiling; full dead-end list + ceilings in prefill-docs CHUNK_2K_ATTACK_RESULTS.md
+- [K-split ≥5 bands bug](gemma4-ksplit-band-monotonicity.md) — band slices not monotone; whole-model KV PCC missed it, op test caught it; run ring SDPA op tests for scheduling changes
+- [Gemma4 batching PoC traps](gemma4-batching-poc-traps.md) — phase 1 works (2k x4 135.9 vs 218 ms); compile all trace shapes before any capture; ring gather has no backpressure (per-call buffers+sems); batched residual L1 clash -> dump buffers
 
 ## Mistral Small 4 / PP=4 / disagg
 - [Mistral4 56,320 golden](mistral4-55k-golden.md) — staged on /mnt under blaze/mistralai, CI-green; SDPA gate; why the 0.999999 bar is unachievable
@@ -105,3 +110,4 @@
 - [Power tier decides which measurement is valid](bh-galaxy-power-tier-measurement-validity.md) — 75W box: full clock ~40s then −26%; 256k inflates +20% but layer profiles match a 190W box to 0.03%; long-run A/B deltas are the trap
 - [Mistral4 TP4 perf A/B 10-05](mistral4-tp4-perf-compare-1005.md) — baseline vs Asif vs Alina branches + harness; asif -1.0% not -2.95%; Alina/local-disk runs still unmeasured
 - [Gemma4 PRs do not port to Mistral4](mistral4-gemma4-pr-portability.md) — no sliding window, no GELU, fabric already torus; K-split + seg-acc measured NULL (and proved to engage); next lever is MoE
+- [as_tensor fallback poisons shared caches](as-tensor-fallback-poisons-shared-cache.md) — failed warm-cache load rewrites the .tensorbin with zeros (#60134); zero-scan to detect, header-splice to restore exactly
