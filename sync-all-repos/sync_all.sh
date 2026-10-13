@@ -43,6 +43,23 @@ repos=$( { find "$HOME" -maxdepth 3 \( -path "$HOME/.cache" -o -path "$HOME/.loc
                -name .git -print 2>/dev/null | xargs -r -n1 dirname
            for p in ${SYNC_EXTRA:-}; do echo "$p"; done; } | sort -u)
 
+
+# push <repo> <branch> [-u]: origin first; if SSH is refused, retry over HTTPS with gh's token
+# (same repo, remotes unchanged). Error text lands in $ERRF.
+ERRF=$(mktemp)
+push() {
+    local r="$1" br="$2"; shift 2
+    git -C "$r" push -q "$@" origin "$br" 2>"$ERRF" && return 0
+    grep -q "Permission denied (publickey)\|Could not read from remote" "$ERRF" || return 1
+    local url https
+    url=$(git -C "$r" remote get-url origin)
+    https=$(echo "$url" | sed -E 's#^git@github.com:#https://github.com/#; s#^ssh://git@github.com/#https://github.com/#')
+    [ "$https" != "$url" ] && gh auth status >/dev/null 2>&1 || return 1
+    git -C "$r" -c credential.helper= -c 'credential.helper=!gh auth git-credential' push -q "$https" "$br" 2>"$ERRF" \
+        && { git -C "$r" fetch -q origin "$br" 2>/dev/null || git -C "$r" update-ref "refs/remotes/origin/$br" HEAD; VIA=" via https"; return 0; }
+    return 1
+}
+
 FAIL=0
 row() { printf '%-28s %-34s %s\n' "$1" "$2" "$3"; }
 row REPO BRANCH RESULT
@@ -81,10 +98,11 @@ for r in $repos; do
             row "$name" "$br" "shared, $ahead local commits NOT pushed: open PR (or gh failed: $pr)$note"; FAIL=1; continue
         fi
         if [ "$APPLY" -eq 0 ]; then row "$name" "$br" "shared, would push ${ahead:-new branch} commits$note"; continue; fi
-        if g push -q origin "$br" 2>/tmp/sync_all.$$; then
-            row "$name" "$br" "shared, pushed ${ahead} commits$note"
+        VIA=""
+        if push "$r" "$br"; then
+            row "$name" "$br" "shared, pushed ${ahead} commits$VIA$note"
         else
-            row "$name" "$br" "shared, PUSH FAILED: $(tail -1 /tmp/sync_all.$$)"; FAIL=1
+            row "$name" "$br" "shared, PUSH FAILED: $(tail -1 "$ERRF")"; FAIL=1
         fi
         continue
     fi
@@ -116,16 +134,17 @@ for r in $repos; do
         g add -A && g commit -q -m "$MSG" || { row "$name" "$br" "COMMIT FAILED ($plan)"; FAIL=1; continue; }
     fi
     if [ "$behind" -gt 0 ]; then
-        if ! g pull -q --rebase origin "$br" 2>/tmp/sync_all.$$; then
+        if ! g pull -q --rebase origin "$br" 2>"$ERRF"; then
             g rebase --abort 2>/dev/null
             row "$name" "$br" "REBASE CONFLICT, committed locally, not pushed"; FAIL=1; continue
         fi
     fi
-    if g push -q -u origin "$br" 2>/tmp/sync_all.$$; then
-        row "$name" "$br" "pushed ($plan)"
+    VIA=""
+    if push "$r" "$br" -u; then
+        row "$name" "$br" "pushed ($plan)$VIA"
     else
-        row "$name" "$br" "PUSH FAILED: $(tail -1 /tmp/sync_all.$$)"; FAIL=1
+        row "$name" "$br" "PUSH FAILED: $(tail -1 "$ERRF")"; FAIL=1
     fi
 done
-rm -f /tmp/sync_all.$$
+rm -f "$ERRF"
 exit $FAIL
