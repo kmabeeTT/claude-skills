@@ -6,8 +6,8 @@
 #   sync_all.sh --apply [-m MSG]   # commit + push personal repos, push shared repos' local commits
 #   sync_all.sh --apply --no-shared  # leave shared repos alone
 #
-# Repos: every .git (dir or worktree file) under $HOME to depth 3, skipping .cache/.local, plus any
-# paths in $SYNC_EXTRA (space-separated).
+# Repos: every .git (dir or worktree file) under $HOME to depth 3, skipping .cache/.local, the repos in
+# /data/$USER/helpers, repos that ~/<name> symlinks point at, plus paths in $SYNC_EXTRA (space-separated).
 #
 # Personal repo = origin is github.com:$SYNC_OWNER/* (default kmabeeTT). For those:
 #   - stage everything (git add -A), commit with MSG (default "sync: <host> <UTC time>"), push.
@@ -39,9 +39,11 @@ while [ $# -gt 0 ]; do
 done
 [ -n "$MSG" ] || MSG="sync: $(hostname -s) $(date -u '+%Y-%m-%d %H:%M UTC')"
 
-repos=$( { find "$HOME" -maxdepth 3 \( -path "$HOME/.cache" -o -path "$HOME/.local" \) -prune -o \
+repos=$( { find "$HOME" -maxdepth 3 \( -path "$HOME/.cache" -o -path "$HOME/.local" -o -name "*.moved-*" -o -name "*.bak-*" \) -prune -o \
                -name .git -print 2>/dev/null | xargs -r -n1 dirname
-           for p in ${SYNC_EXTRA:-}; do echo "$p"; done; } | sort -u)
+           find "/data/$USER/helpers" -mindepth 2 -maxdepth 2 -name .git 2>/dev/null | xargs -r -n1 dirname
+           for l in "$HOME"/*; do [ -L "$l" ] && [ -e "$l/.git" ] && readlink -f "$l"; done
+           for p in ${SYNC_EXTRA:-}; do echo "$p"; done; } | xargs -r -n1 readlink -f | sort -u)
 
 
 # push <repo> <branch> [-u]: origin first; if SSH is refused, retry over HTTPS with gh's token
@@ -65,7 +67,7 @@ row() { printf '%-28s %-34s %s\n' "$1" "$2" "$3"; }
 row REPO BRANCH RESULT
 
 for r in $repos; do
-    name="~${r#"$HOME"}"
+    name="${r/#\/data\/$USER\/helpers/helpers}"; name="${name/#$HOME/\~}"
     g() { git -C "$r" "$@"; }
     br=$(g branch --show-current 2>/dev/null)
     url=$(g remote get-url origin 2>/dev/null)

@@ -14,6 +14,7 @@
 
 ## Boxes, shared trees and devices
 - [Build host bh-glx-110-a10u08](build-host-bh-glx-110-a10u08.md) — shared 32-chip BH Galaxy, no sudo, NFS checkout, outside SLURM
+- [Personal repos on /data/helpers](helpers-on-data-shared-repos.md) — since 10-13 claude-skills/debug-docs/prefill-docs/scripts/cch live in /data/kmabee/helpers (700) with ~ symlinks; dotfiles stays local; no push needed to switch boxes, still push for backup
 - [Shared tree, multiple sessions](shared-tree-multi-session.md) — other Claude sessions (even on other boxes, via NFS) use /data/kmabee/tt-metal-2 + chips; check ListAgents / queue.lock before mkb or device runs; tt-metal-3 is the second build tree, used by bh-glx-120-c03u08 (c02u02 sessions stay on tt-metal-2); override W and PY after sourcing helpers
 - [Visible process is not my process](visible-process-is-not-my-process.md) — hidepid visibility means same UID; other Claude sessions run as kmabee from other checkouts
 - [Device usage visibility](device-usage-visibility.md) — use ~/scripts/tt-devs.sh ("N/32 chips claimed", UMD locks) as THE holder check; /proc/driver/tenstorrent/N/pids goes stale (one PID on all chips + kill -0 EPERM can still be free chips: cost a session 25 min on 10-09); SLURM+Grafana show kmabee's runs as idle
