@@ -23,6 +23,7 @@
 - [Gemma4 unit dir opens chips](gemma4-unit-dir-opens-chips.md) — only test_prefill_configs/test_prefill_dispatch are host-only; never run the dir beside a live run
 - [BH Galaxy prefill is power-throttled](bh-galaxy-prefill-power-throttled.md) — AICLK ~1100-1250/1350 at 115 W TDP (raised to 130 W on 2026-09-29: re-baseline); stale/zero-data hacks look falsely fast; isolated-layer bench understates energy wins
 - [/data quota and tracy captures](data-quota-tracy-captures.md) — per-user quota; a capture is ~15 GB; truncated .git/index = quota; trim profiler/ after each capture
+- [/data cleanup 10-10: symlinked copies](data-cleanup-1010-symlinked-copies.md) — Mistral checkpoint, gemma HF hub, Mistral 8x4 cache are now read-only symlinks to Weka//mnt; mesh8x1/4x8 gemma caches and blaze weight cache deleted
 - [/data checkout venv $HOME pin](data-checkout-venv-home-pin.md) — dangling python_env on a second box: repoint at /usr/bin/python3.10 (uv-python is gone); same for CMakeCache and stale PCH
 - [b03u08 device 24 is faulty](bh-glx-b02u08-dev16-dead.md) — repeatable: run hangs at first traced chunk BEFORE any reset, then POST_RESET fails on dev 24; b02u08 dev 16 same; arm a stall detector, lspci is not a health check
 - [Board + fleet smoke test](tt-board-smoke-test.md) — ~/scripts/tt_board_smoke.py (0.4s, stdlib) + tt_fleet_smoke.py (7 boxes ~1s over ssh stdin); sysfs attrs NOT under device/; detects hung, MISSING tray, nodata; strace-verified safe beside a live run
@@ -80,7 +81,9 @@
 - [Session state 10-03](session-state-1003.md) — after a compaction read SESSION_STATE_1003.md + the experiment ledger first; chips handed off 18:07 UTC 10-03
 - [Gemma4 2k attack 10-08](gemma4-2k-attack-1008.md) — q128 + rect bands + two traces + sliding ksplit2 + GEGLU op: 256k 10.31→9.64 s, 100k 3.31→3.23 (2k-only knobs); CCL = 8 ms/chunk ceiling; full dead-end list + ceilings in prefill-docs CHUNK_2K_ATTACK_RESULTS.md
 - [K-split ≥5 bands bug](gemma4-ksplit-band-monotonicity.md) — band slices not monotone; whole-model KV PCC missed it, op test caught it; run ring SDPA op tests for scheduling changes
+- [Batching PoC session state 10-10](batching-poc-session-1010.md) — after a compaction read ~/debug-docs/gemma4_batching_poc-noissue/SESSION_STATE_1010.md + prefill-docs BATCHING_POC.md + BATCHED_PREFILL_SERVING.md; clean branch kmabee/gemma4-batching-clean (9 pushed + 2 local serving commits)
 - [Gemma4 batching PoC traps](gemma4-batching-poc-traps.md) — phase 1 works (2k x4 135.9 vs 218 ms); compile all trace shapes before any capture; ring gather has no backpressure (per-call buffers+sems); batched residual L1 clash -> dump buffers
+- [Lazy fabric buffer zero-fill race](lazy-fabric-buffer-zero-fill-race.md) — lazily ttnn.zeros'd receive buffer: lagging device's fill erases peers' fabric writes; first-use-only lost rows; sync after creation; repeat the step N times to spot it
 
 ## Mistral Small 4 / PP=4 / disagg
 - [Mistral4 56,320 golden](mistral4-55k-golden.md) — staged on /mnt under blaze/mistralai, CI-green; SDPA gate; why the 0.999999 bar is unachievable
