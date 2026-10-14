@@ -15,3 +15,5 @@ Since 2026-10-13 the personal repos live on NFS at `/data/kmabee/helpers/<repo>`
 - Still push periodically as backup (`~/claude-skills/sync-all-repos/sync_all.sh`): NFS is not a backup.
 
 Related: [[debug-docs-location]], [[shared-tree-multi-session]], [[tt-metal-push-routes]].
+
+**Worktrees (2026-10-13):** every linked tt-metal / tt-metal-2 / tt-metal-3 worktree now lives in `/data/kmabee/worktrees/<name>`; main checkouts stay at `/data/kmabee/<name>`. Built ones keep a symlink at the old `/data/kmabee/<name>` path because build dirs and venvs hold absolute paths. `wt-batching` (the batching PoC build tree, venv rebuilt 10-13) moved last, also symlinked back. Move a worktree with `~/scripts/move_worktree.py [--apply] [--symlink] OLD NEW`, never `git worktree move` (it refuses trees with submodules). The script rewrites submodule gitdir/core.worktree links as absolute paths, because the relative ones break when the depth changes.
