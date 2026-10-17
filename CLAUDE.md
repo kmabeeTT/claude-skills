@@ -11,7 +11,12 @@ Operational lessons to avoid re-paying time already spent. Keep this lean.
 - **Never edit a running bash script** — bash reads by offset, so the live run dies on a phantom syntax error.
 - **Before `kill`, confirm the PID's cmdline matches your own run.** Other Claude sessions run as the same UID; visible ≠ mine.
 - ALL_CAPS filenames for living reference docs (runbooks, trackers); snake_case for one-off records.
-- debug-docs: commit locally, push per milestone/topic, not per tracker tweak.
+- debug-docs: commit locally, push per milestone/topic, not per tracker tweak. **prefill-docs: never
+  push without Kyle's OK.**
+- **Once a PR is out of draft: no force-pushes.** All feedback goes in one commit on top; show Kyle the
+  diff and the planned replies before pushing or replying. Drafts can be amended and force-pushed with lease.
+- **Don't name or @-tag people in issue/PR text without asking;** refer to roles. PR labels: topic only,
+  never `pr-priority` / `pr-risk` / `pr-complexity`.
 
 ## TT serving servers (tt-inference-server / tt-media-server + tt-xla)
 - **Launch must run from the tt-xla venv**, because `venv/activate` and `TT_METAL_HOME`
@@ -79,16 +84,23 @@ Operational lessons to avoid re-paying time already spent. Keep this lean.
 ## Git push & CI dispatch (shared TT boxes)
 - **Two different push blockers; the rejection text tells them apart.** `Permission denied
   (publickey)`, or a hang non-interactively, means this shell's `SSH_AUTH_SOCK` points at an agent
-  that died on reconnect — `source ~/.bashrc` re-points at a live one (that block probes each
-  candidate with `ssh-add -l`, since a live agent holding no keys fails identically).
+  that died on reconnect. In an interactive shell, `fixagent` (from bashrc) re-points at a live one;
+  it probes each candidate with `ssh-add -l`, since a live agent holding no keys fails identically.
   `remote rejected ... 'workflows' scope may be required` is NOT that: the `gh` HTTPS token carries
-  `gist, read:org, repo` but no `workflow`, so any push whose branch changes `.github/workflows/*`
-  relative to the default branch is refused — e.g. moving a branch onto an older base. The message
-  says "timeout" and retrying does nothing; **push over SSH**, which OAuth scopes don't gate.
-- **`source ~/.bashrc` is a NO-OP in Claude Code's Bash tool** — so the agent fix above needs
-  running by hand here. bashrc returns at line 8 (`case $- in *i*) ;; *) return;;`) because the
-  shell is non-interactive, and never reaches the probe at line 218; you then wrongly conclude
-  there is no agent. Run the loop directly:
+  `admin:public_key, gist, read:org, repo` but no `workflow`, so a push whose pushed range changes
+  `.github/workflows/*` is refused — e.g. moving a branch onto an older base. The message may say
+  "timeout"; retrying does nothing. **Push over SSH**, which OAuth scopes don't gate.
+- **For tenstorrent/tt-metal over SSH, only the forwarded `macbook` key is SAML-SSO authorized.**
+  The on-disk `~/.ssh/id_ed25519` authenticates (`ssh -T` says hi) but org pushes fail with a SAML
+  error. With the agent found (below), also set
+  `GIT_SSH_COMMAND="ssh -o IdentitiesOnly=no -o IdentityFile=/dev/null"` so the on-disk key isn't
+  offered first. No forwarded agent at all: personal repos still push over HTTPS
+  (`git -c credential.helper= -c credential.helper='!gh auth git-credential' push https://github.com/kmabeeTT/<repo>.git main:main`).
+- **`source ~/.bashrc` in Claude Code's Bash tool gives `gh` its token, but not an agent.**
+  `~/.gh-token.env` is sourced at line 7, above the non-interactive `return`, so `gh` works when
+  it's sourced in the same Bash call. `fixagent` and the startup agent probe are below the return,
+  so they never run. Get an agent with `bash -ic 'fixagent; echo $SSH_AUTH_SOCK'` and export the
+  socket it prints, or run the loop directly:
   `for s in $(command ls -t /tmp/ssh-*/agent.* 2>/dev/null); do [ -S "$s" ] && SSH_AUTH_SOCK=$s ssh-add -l >/dev/null 2>&1 && export SSH_AUTH_SOCK=$s && break; done`
 - **Don't inherit "push is blocked" from a handoff — test it.** One `ssh-add -l` settles it.
   A stale blocker in a doc cost a whole session's worth of "can't push" here.
@@ -132,8 +144,9 @@ Model: tenstorrent/tt-metal#57931 ("perfect description"). The body becomes the 
   other users' home dirs are unreadable, so `du` totalling 45G against `df` 613G is expected, not a
   mystery. Only your own share is actionable.
 - **The HuggingFace cache is the usual culprit** — any `from_pretrained("<repo id>")` (rather than a
-  local path) downloads a second copy of a model already on `/data`; 223G in one case. Fixed
-  permanently with `~/.cache/huggingface -> /data/kmabee/hf_cache`. Leave `~/.cache/tt-metal-cache`
+  local path) downloads a second copy of a model already on `/data`; 223G in one case. The fix is
+  `~/.cache/huggingface -> /data/kmabee/hf_cache`, but `/home` is per box, so it exists only where
+  it was made (not on bh-glx-120-b08u02, checked 2026-10-17): `ls -ld ~/.cache/huggingface` first. Leave `~/.cache/tt-metal-cache`
   local: it is thousands of small JIT files and NFS would slow every build.
 - When `/` is full the Claude Code Bash tool cannot run **at all** (it needs `/tmp` for scratch), so
   free space from a normal shell first.
