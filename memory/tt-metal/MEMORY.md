@@ -13,6 +13,7 @@
 - [106k prefill metric](prefill-106k-metric.md) — mid-context number is 13 x 8k = 106,496 tokens, label it 106k
 
 ## Boxes, shared trees and devices
+- [tt-metal .cpmcache gutted](tt-metal-cpmcache-gutted.md) — 10-14: CPack/"Cannot find source file" under .cpmcache = gutted cache (tt-metal AND tt-metal-3); mv aside or point --cpm-source-cache at worktrees/cpmcache_remeasure_1014; switching caches leaves a stale CPM_DIRECTORY -> "Unknown command CPMAddPackage", move build_Release aside
 - [Build host bh-glx-110-a10u08](build-host-bh-glx-110-a10u08.md) — shared 32-chip BH Galaxy, no sudo, NFS checkout, outside SLURM
 - [Personal repos on /data/helpers + worktrees dir](helpers-on-data-shared-repos.md) — since 10-13 claude-skills/debug-docs/prefill-docs/scripts/cch live in /data/kmabee/helpers (700) with ~ symlinks; linked worktrees live in /data/kmabee/worktrees/ (built ones symlinked back), move with ~/scripts/move_worktree.py; dotfiles stays local
 - [Shared tree, multiple sessions](shared-tree-multi-session.md) — other Claude sessions (even on other boxes, via NFS) use /data/kmabee/tt-metal-2 + chips; check ListAgents / queue.lock before mkb or device runs; tt-metal-3 is the second build tree, used by bh-glx-120-c03u08 (c02u02 sessions stay on tt-metal-2); override W and PY after sourcing helpers
@@ -23,28 +24,34 @@
 - [Galaxy hard-kill needs glx_reset](glx-hard-kill-needs-reset.md) — silent 2-5x perf degradation, no error; budget two resets; re-check a minute after a reset; "Sysmem mapped at unexpected NOC address" with no holder = reset + wait ~1 min
 - [TT galaxy fabric run hygiene](tt-galaxy-fabric-run-hygiene.md) — glx_reset after hard kills, background device runs, the inverted fabric-link lease API
 - [Gemma4 unit dir opens chips](gemma4-unit-dir-opens-chips.md) — only test_prefill_configs/test_prefill_dispatch are host-only; never run the dir beside a live run
+- [Common prefill tests dir opens chips](common-prefill-tests-dir-opens-chips.md) — test_producer_runner_e2e runs a GLM runner on device (>15 min); use -k "not e2e" for host checks
 - [BH Galaxy prefill is power-throttled](bh-galaxy-prefill-power-throttled.md) — AICLK ~1100-1250/1350 at 115 W TDP (raised to 130 W on 2026-09-29: re-baseline); stale/zero-data hacks look falsely fast; isolated-layer bench understates energy wins
 - [/data quota and tracy captures](data-quota-tracy-captures.md) — per-user quota; a capture is ~15 GB; truncated .git/index = quota; trim profiler/ after each capture
 - [/data cleanup 10-10: symlinked copies](data-cleanup-1010-symlinked-copies.md) — Mistral checkpoint, gemma HF hub, Mistral 8x4 cache are now read-only symlinks to Weka//mnt; mesh8x1/4x8 gemma caches and blaze weight cache deleted
 - [/data checkout venv $HOME pin](data-checkout-venv-home-pin.md) — dangling python_env on a second box: repoint at /usr/bin/python3.10 (uv-python is gone); same for CMakeCache and stale PCH
 - [b03u08 device 24 is faulty](bh-glx-b02u08-dev16-dead.md) — repeatable: run hangs at first traced chunk BEFORE any reset, then POST_RESET fails on dev 24; b02u08 dev 16 same; arm a stall detector, lspci is not a health check
+- [tt-triage at the stall](tt-triage-at-the-stall.md) — dispatch-timeout env runs tt-triage at the hang; a late triage misled twice; gdb host; per-replay logging makes trace hangs repeat
+- [tt-smi root-only on b08u02](tt-smi-root-only-b08u02.md) — system tt-smi unreadable (10-16): no glx_reset, perf checks skip; private ~/venvs/ttsmi copy works
 - [Board + fleet smoke test](tt-board-smoke-test.md) — ~/scripts/tt_board_smoke.py (0.4s, stdlib) + tt_fleet_smoke.py (7 boxes ~1s over ssh stdin); sysfs attrs NOT under device/; detects hung, MISSING tray, nodata; strace-verified safe beside a live run
 
 ## Build, git, CI
 - [tt-metal build approach](tt-metal-build-approach.md) — host source build, not Docker; submodule/tee/SFPI traps
 - [ninja target does not install](ninja-target-does-not-install.md) — partial builds leave Python loading the stale .so; use `--target install`
+- [Kernel globals must be trivially initialized](kernel-globals-trivial-init.md) — struct with member initializers as a kernel global = JIT error on every program; canary any kernel edit before a long queue
 - [Kernel edits break queued runs](kernel-source-edits-break-queued-runs.md) — kernels JIT at run start; edit as patches mid-queue; git rebase/checkout in the shared tree also counts, use plumbing; discarded if-constexpr still compiles
-- [pre-commit stashes unstaged work](precommit-stashes-unstaged-work.md) — a killed first commit hides your uncommitted changes in ~/.cache/pre-commit; plus black version skew
+- [pre-commit stashes unstaged work](precommit-stashes-unstaged-work.md) — a killed first commit hides your uncommitted changes in ~/.cache/pre-commit; plus black version skew; sparse worktree without pyproject.toml = black at 88 cols
 - [Never edit a running bash script](never-edit-a-running-bash-script.md) — bash reads by file offset; a valid edit mid-run throws a phantom syntax error
 - [Cross-worktree pytest sys.path trap](cross-worktree-pytest-syspath-trap.md) — rootdir beats PYTHONPATH; run from the tree you mean, witness models/ttnn __file__, block on free devices; kernels resolve from cwd first — sparse-checkout a Python-only worktree
 - [tt-metal push routes](tt-metal-push-routes.md) — SSH needs the forwarded SSO-authorized agent key (on-disk key fails SAML); HTTPS gh token lacks workflow scope (pushed range touching workflows is refused); SAML flips per box/day, probe with one real push; gate CI dispatch on ls-remote
 - [tt-metal PR body edits](tt-metal-pr-body-edits.md) — edit the live body; a bot appends CI Status and rewrites the body on every push and right after gh pr create
 - [tt-metal /test CI selector](tt-metal-test-command-ci-selector.md) — test-command.md maps diffs to CI; L2 nightly + additional_test_categories is mandatory for ops (WH+BH); a plain L2 dispatch skips every test job yet shows success
+- [Skills reviewers: run locally](skills-reviewers-local-run.md) — bots skip drafts and non-main bases; PR/Merge Gate skip drafts too; ~/claude-skills/tt-pr-skills-review stages a local run
 - [Merge Gate gcc-12 sweep](merge-gate-gcc12-sweep.md) — PR CI is clang-only; dispatch merge-gate.yaml before merging C++ changes
+- [Gemma4 perf gate 4096 host variance](gemma4-perf-gate-4096-host-variance.md) — "4096 < min, update the baseline" on fast hosts (d07u02) = #60461 leftover; rerun on PRs, reopen #60461 only if main hits it
 - [Blaze prefill CI time budget](blaze-prefill-ci-time-budget.md) — 479/488 min used; budget, not code, gates a new model leg
 - [Host-only model tests have no CI home](host-only-model-tests-have-no-ci-home.md) — tests/torch/ in zero rows; models team has no cpu_medium grant
 - [Deepseek collection check](deepseek-collection-check.md) — 28346 expected; run it against an unbuilt checkout, and the 3 traps (32 chips per run, no node ids, stale board)
-- [Sourcing bashrc gives GH_TOKEN, not an agent](bashrc-sourcing-gh-token.md) — gh token is above the interactive guard (line 7) so `source ~/.bashrc` DOES auth gh in the Bash tool; fixagent is below it; gh auth is per-machine via dotfiles
+- [Sourcing bashrc gives GH_TOKEN, not an agent](bashrc-sourcing-gh-token.md) — gh token is above the interactive guard (line 7) so `source ~/.bashrc` DOES auth gh in the Bash tool; fixagent is below it; gh auth is per-machine via dotfiles; `bash -ic fixagent` then export SSH_AUTH_SOCK gets the agent; no forwarded agent at all = push personal repos over HTTPS via gh credential helper
 
 ## Profiling and measurement method
 - [Tracy profiling on tt-metal](tracy-profiling-tt-metal.md) — no rebuild needed; 4 traps that give wrong/empty results silently
@@ -84,7 +91,10 @@
 - [Gemma4 2k attack 10-08](gemma4-2k-attack-1008.md) — q128 + rect bands + two traces + sliding ksplit2 + GEGLU op: 256k 10.31→9.64 s, 100k 3.31→3.23 (2k-only knobs); CCL = 8 ms/chunk ceiling; full dead-end list + ceilings in prefill-docs CHUNK_2K_ATTACK_RESULTS.md
 - [K-split ≥5 bands bug](gemma4-ksplit-band-monotonicity.md) — band slices not monotone; whole-model KV PCC missed it, op test caught it; run ring SDPA op tests for scheduling changes
 - [Batching PoC session state 10-10](batching-poc-session-1010.md) — after a compaction read ~/debug-docs/gemma4_batching_poc-noissue/SESSION_STATE_1010.md + prefill-docs BATCHING_POC.md + BATCHED_PREFILL_SERVING.md; clean branch kmabee/gemma4-batching-clean (9 pushed + 2 local serving commits)
-- [Gemma4 batching PoC traps](gemma4-batching-poc-traps.md) — phase 1 works (2k x4 135.9 vs 218 ms); compile all trace shapes before any capture; ring gather has no backpressure (per-call buffers+sems); batched residual L1 clash -> dump buffers
+- [Batching + AgentX PRs handoff 10-14](batching-agentx-prs-handoff-1014.md) — splitting kmabee/gemma4-batching-main into PRs: read ~/debug-docs/gemma4_batching_poc-noissue/HANDOFF_BATCHING_AGENTX_PRS.md first; Sasha wants a terse commands-only README for the AgentX tool
+- [Batching PRs maintenance 10-17](batching-prs-maintenance-handoff-1017.md) — PRs ready to open; for opening/CI/review read debug-docs HANDOFF_PR_MAINTENANCE_1017.md first
+- [Overnight 10-15/16 state](overnight-1015-state.md) — 10-16 rebase onto f53ef8d99f1 done: read debug-docs MORNING_BRIEF_1016.md first (branches pushed, #60339 silent-corruption finding, gist/comment drafts pending Kyle)
+- [Gemma4 batching PoC traps](gemma4-batching-poc-traps.md) — phase 1 works (2k x4 135.9 vs 218 ms); compile all trace shapes before any capture; ring gather has no backpressure (per-call buffers+sems); batched residual L1 clash -> dump buffers; 4k-lane trace hang = dispatch worker-count wait on one device (NOT CCL semaphores); triage at the stall via dispatch timeout
 - [Lazy fabric buffer zero-fill race](lazy-fabric-buffer-zero-fill-race.md) — lazily ttnn.zeros'd receive buffer: lagging device's fill erases peers' fabric writes; first-use-only lost rows; sync after creation; repeat the step N times to spot it
 
 ## Mistral Small 4 / PP=4 / disagg
@@ -112,7 +122,10 @@
 - [Gemma4 data on /mnt/weka](gemma4-weka-paths.md) — TT_CACHE_PATH + PREFILL_TRACE_DIR Weka paths (done 2026-10-02); root-owned, ask storage to refresh; cold PCC 26.6→12.5 min
 - [PR labels: no triage labels](pr-labels-no-triage.md) — topic labels only (perf, model: gemma-4); never set pr-priority / pr-risk / pr-complexity
 - [Shared kernel sources across ops](shared-kernel-sources-across-ops.md) — rotary_embedding_llama compute kernel is also built by rotary_embedding_indexed; grep path constants before changing a kernel arg contract
-- [Power tier decides which measurement is valid](bh-galaxy-power-tier-measurement-validity.md) — 75W box: full clock ~40s then −26%; 256k inflates +20% but layer profiles match a 190W box to 0.03%; long-run A/B deltas are the trap
+- [Power tier decides which measurement is valid](bh-galaxy-power-tier-measurement-validity.md) — 75W box (c01u08, c01u02): full clock ~40s then −26%; read power1_max in sysfs first; 256k inflates +20% but layer profiles match a 190W box to 0.03%; long-run A/B deltas are the trap
 - [Mistral4 TP4 perf A/B 10-05](mistral4-tp4-perf-compare-1005.md) — baseline vs Asif vs Alina branches + harness; asif -1.0% not -2.95%; Alina/local-disk runs still unmeasured
 - [Gemma4 PRs do not port to Mistral4](mistral4-gemma4-pr-portability.md) — no sliding window, no GELU, fabric already torus; K-split + seg-acc measured NULL (and proved to engage); next lever is MoE
 - [as_tensor fallback poisons shared caches](as-tensor-fallback-poisons-shared-cache.md) — failed warm-cache load rewrites the .tensorbin with zeros (#60134); zero-scan to detect, header-splice to restore exactly
+- [Gemma4 4k-lane hang = prefetcher race](gemma4-4k-lane-hang-prefetcher-race.md) — exec_buf trid-1 read in flight past EXEC_BUF_END clobbers host cmds; #60817 = dupe of #60338, fix PR #60339; ALSO silently corrupts traced batched steps (any kernel-size change moves traced PCC): apply the #60339 patch before bisecting
+- [AgentX workload private until Alina](agentx-workload-private-until-alina.md) — 10-15 characterisation lives in debug-docs gemma4_agentx_workload-60802; don't share/move to prefill-docs until Alina's #60802 results are compared
+- [AgentX sim: gap not in busy](agentx-sim-gap-not-in-busy.md) — demo busy_s skips a 0.8 ms inter-step gap (sim must add it); device level differs 1.5% box to box = ±5-10% on saturated p90

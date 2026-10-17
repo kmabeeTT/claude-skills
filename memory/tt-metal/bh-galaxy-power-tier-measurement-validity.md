@@ -38,3 +38,5 @@ What that does to each metric:
 Related: [[bh-galaxy-prefill-power-throttled]] (the 115→130 W re-baseline, and that an isolated-layer bench understates energy wins — the same effect seen from the other side), [[mistral4-tp4-perf-compare-1005]], [[tt-board-smoke-test]] (health is not occupancy: use tt-devs.sh for holders).
 
 **Box tiers (user, 2026-10-07):** bh-glx-120-c08u14 is an **8 kW** Galaxy; the Gemma4 perf-journey gist numbers came from a **14 kW** box, and no 14 kW box was available on 10-07. On c08u14 chunk-2048 256k device time was 13.77 s vs 10.30 s in the gist for the same code, so only same-box before/after deltas are valid there.
+
+**bh-glx-120-c01u02 is 75 W too** (checked 2026-10-16: `power1_max` 75000000 on all 32 chips, via `/sys/class/tenstorrent/*/device/hwmon/*/power1_max`, safe beside a live run). Gemma4 2k step ~64 ms there vs ~54 ms on c05u08; batched 4-lane step 183 vs 125-144 ms. Read the tier from sysfs before quoting absolute numbers from a box.

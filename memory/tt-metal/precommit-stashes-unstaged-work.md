@@ -37,3 +37,5 @@ changes), and the obvious reading — "the commit just failed, retry" — leaves
 manual `black --check` / trailing-whitespace / EOF checks; either way, back up uncommitted work you
 did not author before committing, and check `~/.cache/pre-commit/patch*` if the tree looks wrong
 afterwards. See [[pp4-perf-harness-traps]].
+
+**Sparse worktrees (2026-10-14):** a sparse checkout without `pyproject.toml` makes the black hook run at its default line length 88 and reformat the whole file (a 8k-line test exploded into a huge diff that got amended in). Several other hooks also "fail" there only because their scripts are not checked out. In a sparse worktree either include `/pyproject.toml` in the sparse set or commit with `--no-verify` after checking formatting with `black --line-length 120`.

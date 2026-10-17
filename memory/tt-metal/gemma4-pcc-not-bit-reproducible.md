@@ -21,3 +21,7 @@ and the first 8192 mismatch today looked like a code bug in a value-identical cl
 /data/kmabee/runs_0930/errratio.py and a first-differing-layer check), not the final overall PCC. Final-PCC
 differences of a few 1e-5 (overall) / 1e-4 (min) are run-to-run noise. Not checked at 2048/4096. See
 [[gemma4-kv-pcc-early-layer-method]], [[gemma4-pcc-test-gate-and-shm]].
+
+**Possibly stale (2026-10-15):** Asif reported on #59901 (10-14 code) that two separate 256K runs gave
+bit-identical KV (standalone accuracy test vs test_prefill_migration). Re-measure on current main before citing
+the drift; the 09-30 evidence is one run pair (runs_0930/pcc_br_tanh{,_rerun}_c8192.log).

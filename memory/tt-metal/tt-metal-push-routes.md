@@ -11,7 +11,7 @@ Merged 2026-10-02 from three per-checkout notes (tt-metal 09-16..09-25, tt-metal
 
 - **SSH** is the route for anything whose pushed commits touch `.github/workflows/*`, because OAuth scopes do not gate it. Two SSH identities reach GitHub as `kmabeeTT` from a bh-glx box, and only one can push to the org:
   - `~/.ssh/id_ed25519` authenticates (`ssh -T git@github.com` prints `Hi kmabeeTT!`) but is **not SAML-SSO authorized**. Pushing with it fails with *"The 'tenstorrent' organization has enabled or enforced SAML SSO"* (fetch/ls-remote still work; push reads "Could not read from remote repository"). Authentication succeeding is why a plain auth probe looks healthy.
-  - The **forwarded `macbook` RSA key** in a live agent socket is SSO-authorized. Find it with the probe loop (`source ~/.bashrc` is a no-op in the Bash tool, and on 2026-09-08 it pointed at a dead socket anyway):
+  - The **forwarded `macbook` RSA key** in a live agent socket is SSO-authorized. Find it with the probe loop (`source ~/.bashrc` in the Bash tool loads the gh token but stops before `fixagent`, see [[bashrc-sourcing-gh-token]]; on 2026-09-08 the inherited socket was dead anyway):
     ```bash
     for s in $(command ls -t /tmp/ssh-*/agent.* 2>/dev/null); do [ -S "$s" ] && SSH_AUTH_SOCK=$s ssh-add -l >/dev/null 2>&1 && export SSH_AUTH_SOCK=$s && break; done
     export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=no -o IdentityFile=/dev/null"   # else the on-disk key is offered first and wins
