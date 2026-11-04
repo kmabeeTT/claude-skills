@@ -83,17 +83,18 @@ cd ~/claude-skills
 ./install.sh
 ```
 
-That creates the two symlinks this layout depends on:
+That creates the symlinks this layout depends on, in `$CLAUDE_CONFIG_DIR` (if set) and `~/.claude`:
 
 | Link | Purpose |
 |------|---------|
-| `~/.claude/skills` -> this repo | where Claude Code loads skills from |
-| `~/.claude/CLAUDE.md` -> `./CLAUDE.md` | global, always-loaded working notes |
+| `<config>/skills` -> this repo | where Claude Code loads skills from |
+| `<config>/CLAUDE.md` -> `./CLAUDE.md` | global, always-loaded working notes |
+| `<config>/projects/<key>/memory` -> `./memory/<dir>` | per-project memory, one line per project in `memory/PROJECTS` (see below) |
 
 Restart Claude Code (or start a new session) afterwards to pick the skills up.
 
 `install.sh` resolves the repo location from its own path, so the clone can live anywhere —
-`~/claude-skills`, `~/code/claude-skills`, whatever. It is idempotent: re-running when both
+`~/claude-skills`, `~/code/claude-skills`, whatever. It is idempotent: re-running when the
 links are already correct reports `ok` and changes nothing.
 
 **Options**
@@ -101,14 +102,15 @@ links are already correct reports `ok` and changes nothing.
 | Flag | Effect |
 |------|--------|
 | `--dry-run` | print what would happen, touch nothing |
-| `--force` | repoint a symlink aimed elsewhere; move a real file/dir aside to `<name>.bak.<timestamp>` |
-| `--skip-claude-md` | install skills only, leave the global `CLAUDE.md` alone |
+| `--force` | repoint a symlink aimed elsewhere; move a real file/dir aside to `<name>.bak.<timestamp>` (a real memory dir is merged into the repo first) |
+| `--skip-claude-md` | leave the global `CLAUDE.md` alone |
+| `--skip-memory` | leave project memory dirs alone |
+| `--config DIR` | only this config dir (repeatable) |
 | `--help` | usage |
 
 It never deletes anything. If `~/.claude/skills` is a real directory rather than a symlink,
 it refuses and exits 1 instead of risking skills that exist only on that machine — `--force`
-renames it out of the way rather than removing it. Honors `CLAUDE_CONFIG_DIR` if Claude's
-config lives somewhere other than `~/.claude`.
+renames it out of the way rather than removing it.
 
 Optional extras:
 
@@ -171,7 +173,8 @@ Then say: "Push my skills" and Claude will sync it to GitHub.
 ```
 ~/.claude/skills/
 ├── README.md                    # This file
-├── install.sh                   # Wire this checkout into ~/.claude (symlinks)
+├── install.sh                   # Wire this checkout into the Claude config dirs (symlinks)
+├── memory/                      # Per-project memory; memory/PROJECTS maps project keys to dirs
 ├── setup-aliases.sh             # Optional shell aliases
 ├── skills-sync/                 # Git sync skill
 │   ├── SKILL.md                 # Skill definition
@@ -224,16 +227,13 @@ Or just say: "Check skill status" and Claude will use the skills-sync skill!
 **Synced via**: Git/GitHub
 **Activated**: Automatically by Claude based on context
 
-## Claude Code memory (`memory/`)
+## Claude Code memory (`memory/`) and where notes go
 
-Claude Code keeps auto-memory per working directory under `~/.claude/projects/<cwd-with-dashes>/memory/`. To share one git-versioned store across all tt-metal checkouts, each checkout's memory dir is a symlink to `memory/tt-metal/` here (same pattern as `CLAUDE.md`). Currently linked: `/data/kmabee/tt-metal`, `tt-metal-2`, `tt-metal-3`.
+Two homes, one place per note (the rule Claude follows is in `CLAUDE.md`, "Where notes go"):
 
-To link a new checkout or worktree (start Claude in it once so the project dir exists, then):
+- **Rules that apply in every project** go in `CLAUDE.md`, which `install.sh` links into each config dir.
+- **Notes about one repo** go in that project's auto-memory dir. Claude Code keeps it at `<config>/projects/<key>/memory/`, where `<key>` is the repo path with `/` turned into `-` (worktrees and subdirectories share their repo's key). `install.sh` links each `<key>` listed in `memory/PROJECTS` to `memory/<dir>/` here, in `$CLAUDE_CONFIG_DIR` and `~/.claude`. Several keys can share a dir: the three tt-metal clones all use `memory/tt-metal/`.
 
-```bash
-P=/data/kmabee/.claude/projects/$(echo /path/to/checkout | tr '/' '-')
-[ -d "$P/memory" ] && mv "$P/memory" "$P/memory.pre-link"   # merge any notes in it by hand
-ln -s /home/kmabee/claude-skills/memory/tt-metal "$P/memory"
-```
+To give a new project tracked memory, add `<key> <dir>` to `memory/PROJECTS` and run `./install.sh`. It creates `memory/<dir>/` if needed. If Claude already made a real memory dir there, `./install.sh --force` merges its notes in (new files copied, new index lines appended) and moves the original to `memory.bak.<stamp>`. A note of the same name with different content is a CONFLICT: nothing is copied for that project until you resolve it.
 
-`memory/tt-metal/MEMORY.md` is the index (one line per note); each note has `name`/`description`/`metadata.type` frontmatter and links others as `[[name]]`. Notes must not contain secrets.
+Each dir's `MEMORY.md` is the index (one line per note); each note has `name`/`description`/`metadata.type` frontmatter and links others as `[[name]]`. Other Claude sessions write here concurrently, so commit only your own paths. Notes must not contain secrets.
