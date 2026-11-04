@@ -10,6 +10,7 @@ Scoped 2026-09-20 for the Mistral Small 4 disaggregated P&D ask (Aleks, 2026-09-
 Three findings worth not re-deriving:
 - The chunk table expresses prefill's contiguous and decode's round-robin layouts **directly, no re-shard**. `migration_strategy_builder.cpp` pairs chunks by (config, slot, layer, position) and enforces only matching `chunkNTokens`, per-chunk `sizeBytes`, config coverage per layer, and a shared global layer-id space. Slot, position offset, chip, bank and mesh shape are all free to differ.
 - Mistral's numbers for that contract: 1 config, 36 layers, `chunk_n_tokens=32`, `chunk_size_bytes=10880` (320-wide bfp8 = 10 tiles x 1088).
+- **Rechecked 2026-10-19:** tt-d-gen replaces tt-llm-engine; its `main` still has no KV migration (docs/disaggregated_prefill_and_decode_with_dynamo.md says so), and its `PrefillWriter` sends one chunk per message, resuming at a tile-aligned (32) prefix, while batched Gemma needs 2048-aligned lane starts.
 - d-gen `main` does NOT have KV migration (docs/disaggregated_prefill_and_decode_with_dynamo.md says so outright), so e2e is blocked on someone else's branch. Gemma's whole model integration was 4 files + one `chunk_aligned_start` engine change; `anatarajan/kimi-prefill-disagg-20260919` is a single bug fix, not a template.
 
 **Why:** the ask reads as four build items and is really one build-free verification path plus two people-blocked decisions.

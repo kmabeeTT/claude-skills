@@ -34,7 +34,7 @@ not the mesh. Use a cache whose `..._mesh{RxC}` dir matches the mesh; see
 disk, and the "incomplete cache" skip message sends you toward rebuilding a 219 GB cache
 that already exists.
 
-**How to apply:** export the three vars above (but prefer a private, mesh-matched `TT_CACHE_PATH` such as `/data/kmabee/hf_cache/tt_cache/<model>` over the shared `/mnt` one), drop `HF_HUB_OFFLINE` only if you need a
+**How to apply:** export the three vars above (TT_CACHE_PATH: the Weka copy, see [[gemma4-weka-paths]]; the private /data copy was deleted 2026-10-28 — a format Weka lacks needs a fresh writable dir), drop `HF_HUB_OFFLINE` only if you need a
 download. Always background device runs and reset after a hard kill — see
 [[tt-galaxy-fabric-run-hygiene]]. For which mesh actually works, see
 [[tt-cache-mesh-mismatch-deadlock]]. If `python_env/bin/python` dangles, see

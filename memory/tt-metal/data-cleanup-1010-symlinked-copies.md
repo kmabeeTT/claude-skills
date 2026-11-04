@@ -33,3 +33,5 @@ Kyle said to leave all worktrees alone.
 - the `mistral4_mla_ref_cache` contents, `ttnn_cache_stage`, `ref_cache`, `mistral4_moe_cache` and `hf_cache/datasets`
 
 /data went from 80T to 65T used over the same window. There are no NFS snapshots. Fix for an import failure: `ln -s build_Release build` (done in tt-metal-2 on 10-12). Smoke loop now uses `~/runs_smoke/smoke_loop3.sh` (TREE=tt-metal-2).
+
+10-30: the gemma HF hub symlink (/data/kmabee/hf_cache/hub/models--google--gemma-4-31B-it -> /mnt/models/huggingface/hub/models--google--gemma-4-31B-it) was gone after the 10-28/29 cleanup; every Gemma4 model test then fails at AutoConfig with LocalEntryNotFoundError (HF_HUB_OFFLINE=1). Recreate the symlink; check `ls /data/kmabee/hf_cache/hub` before a Gemma queue.

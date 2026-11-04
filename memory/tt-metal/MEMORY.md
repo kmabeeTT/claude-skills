@@ -13,13 +13,14 @@
 - [106k prefill metric](prefill-106k-metric.md) — mid-context number is 13 x 8k = 106,496 tokens, label it 106k
 
 ## Boxes, shared trees and devices
-- [tt-metal .cpmcache gutted](tt-metal-cpmcache-gutted.md) — 10-14: CPack/"Cannot find source file" under .cpmcache = gutted cache (tt-metal AND tt-metal-3); mv aside or point --cpm-source-cache at worktrees/cpmcache_remeasure_1014; switching caches leaves a stale CPM_DIRECTORY -> "Unknown command CPMAddPackage", move build_Release aside
+- [tt-metal .cpmcache gutted](tt-metal-cpmcache-gutted.md) — CPack/"Cannot find source file" under a CPM cache = gutted (tt-metal, tt-metal-3, and remeasure_1014 by 10-30); use worktrees/cpmcache_1030; switching caches leaves a stale CPM_DIRECTORY -> "Unknown command CPMAddPackage", move build_Release aside
 - [Build host bh-glx-110-a10u08](build-host-bh-glx-110-a10u08.md) — shared 32-chip BH Galaxy, no sudo, NFS checkout, outside SLURM
 - [Personal repos on /data/helpers + worktrees dir](helpers-on-data-shared-repos.md) — since 10-13 claude-skills/debug-docs/prefill-docs/scripts/cch live in /data/kmabee/helpers (700) with ~ symlinks; linked worktrees live in /data/kmabee/worktrees/ (built ones symlinked back), move with ~/scripts/move_worktree.py; dotfiles stays local
 - [Shared tree, multiple sessions](shared-tree-multi-session.md) — other Claude sessions (even on other boxes, via NFS) use /data/kmabee/tt-metal-2 + chips; check ListAgents / queue.lock before mkb or device runs; tt-metal-3 is the second build tree, used by bh-glx-120-c03u08 (c02u02 sessions stay on tt-metal-2); override W and PY after sourcing helpers
 - [Visible process is not my process](visible-process-is-not-my-process.md) — hidepid visibility means same UID; other Claude sessions run as kmabee from other checkouts
 - [Pause device work when the alloc is lost](pause-device-work-when-alloc-lost.md) — a non-teammate on the chips (akhan/mmanzoor are fine) or no SLURM alloc on this node = stop queuing; ~/scripts/alloc_guard.sh <queue_pid> enforces it (squeue -w is broken here: filter %N)
 - [Device usage visibility](device-usage-visibility.md) — use ~/scripts/tt-devs.sh ("N/32 chips claimed", UMD locks) as THE holder check; /proc/driver/tenstorrent/N/pids goes stale (one PID on all chips + kill -0 EPERM can still be free chips: cost a session 25 min on 10-09); SLURM+Grafana show kmabee's runs as idle
+- [tt-device broker 300 s silence kill](tt-device-broker-300s-silence-kill.md) — broker SIGINTs jobs silent >300 s; file-only logging shows as empty-log kernel build failures; tee to stdout
 - [Stale chip locks look like a container](stale-chip-locks-look-like-container.md) — dead-PID /dev/shm locks after a killed run; kill -0 the owner, glx_reset + rm locks; on c03u08 the lock files are akhan-owned so rm fails and stock waitchips reset-loops: use the runs_sasha/env.sh override
 - [Galaxy hard-kill needs glx_reset](glx-hard-kill-needs-reset.md) — silent 2-5x perf degradation, no error; budget two resets; re-check a minute after a reset; "Sysmem mapped at unexpected NOC address" with no holder = reset + wait ~1 min
 - [TT galaxy fabric run hygiene](tt-galaxy-fabric-run-hygiene.md) — glx_reset after hard kills, background device runs, the inverted fabric-link lease API
@@ -29,10 +30,12 @@
 - [/data quota and tracy captures](data-quota-tracy-captures.md) — per-user quota; a capture is ~15 GB; truncated .git/index = quota; trim profiler/ after each capture
 - [/data cleanup 10-10: symlinked copies](data-cleanup-1010-symlinked-copies.md) — Mistral checkpoint, gemma HF hub, Mistral 8x4 cache are now read-only symlinks to Weka//mnt; mesh8x1/4x8 gemma caches and blaze weight cache deleted
 - [/data checkout venv $HOME pin](data-checkout-venv-home-pin.md) — dangling python_env on a second box: repoint at /usr/bin/python3.10 (uv-python is gone); same for CMakeCache and stale PCH
-- [b03u08 device 24 is faulty](bh-glx-b02u08-dev16-dead.md) — repeatable: run hangs at first traced chunk BEFORE any reset, then POST_RESET fails on dev 24; b02u08 dev 16 same; arm a stall detector, lspci is not a health check
+- [b03u08 device 24 is faulty](bh-glx-b02u08-dev16-dead.md) — b05u02 dev 24 dead too (10-26); repeatable: run hangs at first traced chunk BEFORE any reset, then POST_RESET fails on dev 24; b02u08 dev 16 same; arm a stall detector, lspci is not a health check
 - [tt-triage at the stall](tt-triage-at-the-stall.md) — dispatch-timeout env runs tt-triage at the hang; a late triage misled twice; gdb host; per-replay logging makes trace hangs repeat
-- [tt-smi root-only on b08u02](tt-smi-root-only-b08u02.md) — system tt-smi unreadable (10-16): no glx_reset, perf checks skip; private ~/venvs/ttsmi copy works
+- [tt_dispatch.py](tt-dispatch-tool.md) — Slurm dispatch to healthy boxes by measured power cap/rev (run --power '>=130' [--build]); guide ~/scripts/TT_DISPATCH.md
+- [tt-sbatch build time limit](tt-sbatch-build-time-limit.md) — plain sbatch needs ulimit -S -u $(ulimit -Hu) (login nproc 512 propagates); default 2 h build > cpu_only 1 h max = pends forever (PartitionTimeLimit); --build-time 01:00:00; use a dedicated checkout (build rsyncs back with --delete)
 - [Board + fleet smoke test](tt-board-smoke-test.md) — ~/scripts/tt_board_smoke.py (0.4s, stdlib) + tt_fleet_smoke.py (7 boxes ~1s over ssh stdin); sysfs attrs NOT under device/; detects hung, MISSING tray, nodata; strace-verified safe beside a live run
+- [BH Galaxy skips small meshes](bh-galaxy-skips-small-meshes.md) — requires_mesh_topology 2x2/2x4 op cases SKIP on a Galaxy; grep `SKIPPED [` before claiming multi-chip; add 8x4; L2 dp_op_unit_tests keeps only 2x4
 
 ## Build, git, CI
 - [tt-metal build approach](tt-metal-build-approach.md) — host source build, not Docker; submodule/tee/SFPI traps
@@ -46,8 +49,11 @@
 - [tt-metal PR body edits](tt-metal-pr-body-edits.md) — edit the live body; a bot appends CI Status and rewrites the body on every push and right after gh pr create
 - [tt-metal /test CI selector](tt-metal-test-command-ci-selector.md) — test-command.md maps diffs to CI; L2 nightly + additional_test_categories is mandatory for ops (WH+BH); a plain L2 dispatch skips every test job yet shows success
 - [Skills reviewers: run locally](skills-reviewers-local-run.md) — bots skip drafts and non-main bases; PR/Merge Gate skip drafts too; ~/claude-skills/tt-pr-skills-review stages a local run
+- [Copilot review request via gh](copilot-review-request-gh.md) — `gh pr edit N --add-reviewer @copilot`; the REST bot-login call does nothing; verify in the timeline; run its suggestions
 - [Merge Gate gcc-12 sweep](merge-gate-gcc12-sweep.md) — PR CI is clang-only; dispatch merge-gate.yaml before merging C++ changes
 - [Gemma4 perf gate 4096 host variance](gemma4-perf-gate-4096-host-variance.md) — "4096 < min, update the baseline" on fast hosts (d07u02) = #60461 leftover; rerun on PRs, reopen #60461 only if main hits it
+- [Gemma4 4096 gate = #61818](gemma4-perf-gate-4096-61818.md) — 10-31 SLOW at 4096 is #61818 (2D mcast matmul at per_core_M=2); issue #64190 open
+- [Gemma4 perf gate TOTAL is wall](gemma4-perf-gate-total-is-wall.md) — staging swings ~110 ms/run at 256k@2k; A/B on the DEVICE line over >=4 runs; plugin trick for same-build op A/Bs
 - [Blaze prefill CI time budget](blaze-prefill-ci-time-budget.md) — 479/488 min used; budget, not code, gates a new model leg
 - [Host-only model tests have no CI home](host-only-model-tests-have-no-ci-home.md) — tests/torch/ in zero rows; models team has no cpu_medium grant
 - [Deepseek collection check](deepseek-collection-check.md) — 28346 expected; run it against an unbuilt checkout, and the 3 traps (32 chips per run, no node ids, stale board)
@@ -65,6 +71,7 @@
 ## Gemma4 prefill
 - [Gemma4 8192 PCC floor source](gemma4-8192-pcc-floor-source.md) — enters at global L5 attention; fidelity, Q chunk, denominator comp, bfp4 MLP ruled out; post-attn norm hides row-scale errors
 - [Block-cyclic + #57998 validated](gemma4-block-cyclic-57998-validated.md) — Sasha's 2k/4k/8k test passes with my PR plus 2 halo slots + guard removal; #58685 part 1 (traced end) still open
+- [Small-op folds 10-23](gemma4-small-op-folds-1023.md) — all three only -0.3% at 256k now; only gather->matmul above noise (2k); FPU mul + LLK blockings: don't re-propose
 - [Gemma4 fast tanh GELU](gemma4-fast-tanh-gelu.md) — GELU_TANH param 1: PCC-neutral, -1.8% at 8k; FP32 constants cost 2 SFPLOADI each; fit exp polys for zero mean error and [1,2)
 - [Gemma4 KV PCC: use early layers](gemma4-kv-pcc-early-layer-method.md) — final PCC is chaotic/non-additive (±0.01), base fails the 0.91 gate at 8k context (passes by ~0.001 at 256k); compare layers 0-20 error ratio
 - [Gemma4 M=256 matmul limits](gemma4-m256-matmul-limits.md) — 2k projections hit two ~100 us limits; only width-sharded in0 helps; bfp4/fused gate-up/subblocks null; dst_full_sync+fp32 bug
@@ -89,13 +96,17 @@
 - [Stack merge campaign 10-01](stack-merge-campaign-1001.md) — #58223 merged, #58224 still open (2026-10-02); after a compaction read debug-docs SESSION_STATE.md first
 - [Session state 10-03](session-state-1003.md) — after a compaction read SESSION_STATE_1003.md + the experiment ledger first; chips handed off 18:07 UTC 10-03
 - [Gemma4 2k attack 10-08](gemma4-2k-attack-1008.md) — q128 + rect bands + two traces + sliding ksplit2 + GEGLU op: 256k 10.31→9.64 s, 100k 3.31→3.23 (2k-only knobs); CCL = 8 ms/chunk ceiling; full dead-end list + ceilings in prefill-docs CHUNK_2K_ATTACK_RESULTS.md
+- [AgentX simulator #60867](agentx-simulator-pr60867.md) — merged 10-21; host-only replay of AgentX traces, measured per-layer data + silicon calibration, held-out TTFT within 1.7%
 - [K-split ≥5 bands bug](gemma4-ksplit-band-monotonicity.md) — band slices not monotone; whole-model KV PCC missed it, op test caught it; run ring SDPA op tests for scheduling changes
 - [Batching PoC session state 10-10](batching-poc-session-1010.md) — after a compaction read ~/debug-docs/gemma4_batching_poc-noissue/SESSION_STATE_1010.md + prefill-docs BATCHING_POC.md + BATCHED_PREFILL_SERVING.md; clean branch kmabee/gemma4-batching-clean (9 pushed + 2 local serving commits)
 - [Batching + AgentX PRs handoff 10-14](batching-agentx-prs-handoff-1014.md) — splitting kmabee/gemma4-batching-main into PRs: read ~/debug-docs/gemma4_batching_poc-noissue/HANDOFF_BATCHING_AGENTX_PRS.md first; Sasha wants a terse commands-only README for the AgentX tool
-- [Batching PRs maintenance 10-17](batching-prs-maintenance-handoff-1017.md) — PRs ready to open; for opening/CI/review read debug-docs HANDOFF_PR_MAINTENANCE_1017.md first
+- [Batching PRs maintenance 10-17](batching-prs-maintenance-handoff-1017.md) — PR 1-3 open as drafts #61236-8, PR 5 pushed not opened; read debug-docs SESSION_SUMMARY_1018.md then HANDOFF_PR_MAINTENANCE_1017.md
+- [Packed-forward rework 10-20](packed-forward-rework-handoff-1020.md) — PR 5/6 on packed forwards, pushed 10-20, PR 3 closed; CI green; read debug-docs HANDOFF_AFTER_PACKED_REWORK_1021.md
+- [Halo pre-exchange LOSES 10-23](halo-preexchange-loses-1023.md) — exchange ~95 us/req link-bound; split 679 vs lanes 486 at B=4; bit-exact proto on local branch
+- [SP4 halves beat lanes 10-27](sp4-halves-beat-lanes-1027.md) — 2xSP4 115-194 vs SP8 lanes 130-237 ms per 4x2k step; lone request 1.38x slower
 - [Overnight 10-15/16 state](overnight-1015-state.md) — 10-16 rebase onto f53ef8d99f1 done: read debug-docs MORNING_BRIEF_1016.md first (branches pushed, #60339 silent-corruption finding, gist/comment drafts pending Kyle)
 - [Gemma4 batching PoC traps](gemma4-batching-poc-traps.md) — phase 1 works (2k x4 135.9 vs 218 ms); compile all trace shapes before any capture; ring gather has no backpressure (per-call buffers+sems); batched residual L1 clash -> dump buffers; 4k-lane trace hang = dispatch worker-count wait on one device (NOT CCL semaphores); triage at the stall via dispatch timeout
-- [Lazy fabric buffer zero-fill race](lazy-fabric-buffer-zero-fill-race.md) — lazily ttnn.zeros'd receive buffer: lagging device's fill erases peers' fabric writes; first-use-only lost rows; sync after creation; repeat the step N times to spot it
+- [Lazy fabric buffer zero-fill race](lazy-fabric-buffer-zero-fill-race.md) — host or lazy zero fill vs peers' fabric writes = intermittent zero rows; hit again 10-30 (PR 2 test); also how to emulate a QB2 on a Galaxy
 
 ## Mistral Small 4 / PP=4 / disagg
 - [Mistral4 56,320 golden](mistral4-55k-golden.md) — staged on /mnt under blaze/mistralai, CI-green; SDPA gate; why the 0.999999 bar is unachievable
@@ -129,3 +140,8 @@
 - [Gemma4 4k-lane hang = prefetcher race](gemma4-4k-lane-hang-prefetcher-race.md) — exec_buf trid-1 read in flight past EXEC_BUF_END clobbers host cmds; #60817 = dupe of #60338, fix PR #60339; ALSO silently corrupts traced batched steps (any kernel-size change moves traced PCC): apply the #60339 patch before bisecting
 - [AgentX workload private until Alina](agentx-workload-private-until-alina.md) — 10-15 characterisation lives in debug-docs gemma4_agentx_workload-60802; don't share/move to prefill-docs until Alina's #60802 results are compared
 - [AgentX sim: gap not in busy](agentx-sim-gap-not-in-busy.md) — demo busy_s skips a 0.8 ms inter-step gap (sim must add it); device level differs 1.5% box to box = ±5-10% on saturated p90
+- [Ring SDPA silent prefix 0](ring-sdpa-metadata-silent-prefix-fallback.md) — bad/wrapping prefix with 1 halo slot attends as prefix 0, no error; KV writer has no slot-end clamp
+- [Gemma4 mid-chunk resume](gemma4-mid-chunk-resume-1019.md) — #61878 merged 10-24; PR 5/6 rebased onto it, pushed, CI green; read debug-docs PR5_REBASE_PLAN_1023.md
+- [b08u02 devices 4/5 flaky](bh-glx-b08u02-dev4-5-flaky.md) — failed secondary bus reset, invisible to triage in 3 hangs on 10-19; reset + rerun before blaming code
+- [Gemma4 sliding SDPA fork 10-30](gemma4-sliding-sdpa-fork-handoff-1030.md) — PR 2 lanes move to a Gemma4-owned fork (PR A fork, PR B lanes); read debug-docs HANDOFF_GEMMA4_SLIDING_SDPA_FORK_1030.md
+- [ttnn build symlink missing](ttnn-build-symlink-missing.md) — `_ttnncpp.so` not found + intact build_Release = missing `build` symlink; ln -s, no rebuild
