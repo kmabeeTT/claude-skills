@@ -164,6 +164,9 @@ Everything Claude saves goes in the claude-skills repo (`~/claude-skills` ->
 - Squash-merge here uses the **PR title and body**, not the branch commits (`squash_merge_commit_
   title: PR_TITLE`), and GitHub appends the **PR** number to the subject. So `Fixes #N` belongs in
   the PR description, and an issue number in the PR title would collide with the appended one.
+- **No issue numbers in commit messages,** above all on branches still being iterated: every pushed commit
+  that names `#N` adds a cross-reference to that issue, and rebases repeat it. PR descriptions can and should
+  reference issues.
 - **`gh` auth comes from `~/.gh-token.env` (a dotfiles symlink, per box).** "Not logged into any hosts" on a new
   box means the dotfiles aren't in place, not a bad token. Never print the token.
 
