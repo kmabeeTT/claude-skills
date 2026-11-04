@@ -10,8 +10,8 @@ metadata:
 
 /data (NFS) enforces a per-user quota even when `df` shows TBs free. On 2026-09-27 six gemma4 layer-perf tracy captures (~15 GB of raw `profiler/` each) plus old ones filled it: writes then fail at close with "Disk quota exceeded", which showed up as `fatal: .git/index: index file smaller than expected` / `unknown index entry format`, a failed `cmake --build`, and a capture with no CSV.
 
-**Why:** `quota` is not installed and `df` is filesystem-wide, so nothing warns before writes start failing.
+**Why:** the quota fact and its `dd` test are in CLAUDE.md ("Disk on shared boxes"); this note is the tracy side.
 
-**How to apply:** test with `dd if=/dev/zero of=/data/kmabee/.wtest bs=1M count=50` (it reports "Disk quota exceeded" on close). After each capture keep only the ops_perf_results CSV and the tt-perf-report summaries; /data/kmabee/prof_0925/capture.sh now trims its raw `profiler/` dir automatically. Repair a truncated index with `rm .git/index && git read-tree HEAD` once space is back. Other big items in the share: gemma4_runs (118 GB), wt_newbase / wt_57422 worktrees.
+**How to apply:** after each capture keep only the ops_perf_results CSV and the tt-perf-report summaries; /data/kmabee/prof_0925/capture.sh now trims its raw `profiler/` dir automatically. Repair a truncated index with `rm .git/index && git read-tree HEAD` once space is back. Other big items in the share: gemma4_runs (118 GB), wt_newbase / wt_57422 worktrees.
 
 **Also on local `/` (2026-10-08, d07u08):** ~15 captures in `~/runs_2k` (home is on the root fs there) filled `/` and the Claude Code tool's `/tmp` with it — every command then failed with ENOSPC and printed nothing. Recovery: a `find ... -name profile_log_device.csv -o -name tracy_ops_times.csv -o -name '*.tracy' -size +100M -delete` with all output sent to /dev/null. Trim right after parsing each capture.

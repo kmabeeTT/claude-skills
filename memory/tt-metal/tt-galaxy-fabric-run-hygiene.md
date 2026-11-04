@@ -14,9 +14,8 @@ that each cost a wasted run:
 1. **Any SIGKILL of a job mid-fabric-transfer requires a reset before the next launch** (on a galaxy that is `tt-smi -glx_reset`; plain `-r` is per-PCIe-device and not the galaxy path, see [[device-usage-visibility]]). The next
    mesh open otherwise dies with `Timed out while waiting for active ethernet core N-N to become
    active again`. This is not a hardware fault and not a topology bug — it is un-idled ethernet cores.
-2. **Never launch a device run in the Claude Code Bash foreground.** The tool's 2-minute cap kills the
-   wrapper (even a `timeout 900` one), which is itself a SIGKILL mid-transfer and therefore triggers
-   trap 1. Use `setsid nohup ... &` and poll the log.
+2. **Never launch a device run in the Claude Code Bash foreground** (rule in CLAUDE.md, "Shared TT boxes"):
+   even a `timeout 900` wrapper is killed by the 2-minute cap, which is a SIGKILL mid-transfer and so trap 1.
 3. **`release_fabric_links()` GRANTS the fabric links to the socket service; `wait_for_fabric_links()`
    RECLAIMS them.** The naming reads backwards. Omitting the grant raises nothing: the push returns,
    no data moves, and every downstream rank blocks forever in a `recv` that has no timeout.

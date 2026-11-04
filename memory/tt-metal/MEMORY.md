@@ -1,24 +1,11 @@
-## Working with Kyle (conventions)
-- [Ask before opening PRs](ask-before-opening-prs.md) — never gh pr create (even draft) without asking; push branch + draft description
-- [prefill-docs push needs OK](prefill-docs-push-needs-ok.md) — never push prefill-docs without Kyle's thumbs up; commit locally on a branch and ask
-- [No force push after undraft](no-force-push-after-undraft.md) — once a PR is out of draft: one concise feedback commit on top, wait for Kyle before pushing or replying
-- [MD written for GitHub](md-writing-for-github.md) — no hard wrapping; drafted replies unquoted under a bold heading; PR descriptions use bullet results, not tables (squash commit)
-- [Telegram is two-way](telegram-two-way.md) — send with runs_ringsdpa/tg_send.sh, read replies with ~/scripts/tg_read.sh; env file is /home/kmabee/dotfiles/.tt-telegram.env (pass via TELEGRAM_ENV_FILE); ask there and poll instead of stopping
-- [CI status only when verified](ci-status-only-when-verified.md) — never write PASSED for a run until gh shows completed/success; check the model leg, not just the run
-- [Avoid rm in run commands](avoid-rm-in-run-commands.md) — no rm -rf/rm -f cleanup in run commands; use timestamped basetemp and unique ring names
-- [ALL_CAPS names for reference docs](allcaps-names-for-reference-docs.md) — working docs you reopen get ALL_CAPS; snake_case is for one-off investigation records
-- [Debug-docs is the doc home](debug-docs-location.md) — one canonical copy in ~/debug-docs/<topic>/; /data/kmabee copies only as throwaways for another box
-- [No worktrees for doc repos](no-worktrees-for-docs.md) — branch inside ~/prefill-docs itself; Kyle can't find worktrees elsewhere
-- [debug-docs: batch commits](debug-docs-batch-commits.md) — push per milestone/topic, not per tracker tweak; safe squash recipe if needed
+## Reporting conventions
 - [106k prefill metric](prefill-106k-metric.md) — mid-context number is 13 x 8k = 106,496 tokens, label it 106k
 
 ## Boxes, shared trees and devices
 - [tt-metal .cpmcache gutted](tt-metal-cpmcache-gutted.md) — CPack/"Cannot find source file" under a CPM cache = gutted (tt-metal, tt-metal-3, and remeasure_1014 by 10-30); use worktrees/cpmcache_1030; switching caches leaves a stale CPM_DIRECTORY -> "Unknown command CPMAddPackage", move build_Release aside
 - [Build host bh-glx-110-a10u08](build-host-bh-glx-110-a10u08.md) — shared 32-chip BH Galaxy, no sudo, NFS checkout, outside SLURM
 - [Personal repos on /data/helpers + worktrees dir](helpers-on-data-shared-repos.md) — since 10-13 claude-skills/debug-docs/prefill-docs/scripts/cch live in /data/kmabee/helpers (700) with ~ symlinks; linked worktrees live in /data/kmabee/worktrees/ (built ones symlinked back), move with ~/scripts/move_worktree.py; dotfiles stays local
-- [Shared tree, multiple sessions](shared-tree-multi-session.md) — other Claude sessions (even on other boxes, via NFS) use /data/kmabee/tt-metal-2 + chips; check ListAgents / queue.lock before mkb or device runs; tt-metal-3 is the second build tree, used by bh-glx-120-c03u08 (c02u02 sessions stay on tt-metal-2); override W and PY after sourcing helpers
-- [Visible process is not my process](visible-process-is-not-my-process.md) — hidepid visibility means same UID; other Claude sessions run as kmabee from other checkouts
-- [Pause device work when the alloc is lost](pause-device-work-when-alloc-lost.md) — a non-teammate on the chips (akhan/mmanzoor are fine) or no SLURM alloc on this node = stop queuing; ~/scripts/alloc_guard.sh <queue_pid> enforces it (squeue -w is broken here: filter %N)
+- [Shared tree, multiple sessions](shared-tree-multi-session.md) — other Claude sessions (even on other boxes, via NFS) use /data/kmabee/tt-metal-2 + chips; queue-lock paths, waitchips auto-reset trap, slow tt-metal-3 configure; override W and PY after sourcing helpers (general rule in CLAUDE.md)
 - [Device usage visibility](device-usage-visibility.md) — use ~/scripts/tt-devs.sh ("N/32 chips claimed", UMD locks) as THE holder check; /proc/driver/tenstorrent/N/pids goes stale (one PID on all chips + kill -0 EPERM can still be free chips: cost a session 25 min on 10-09); SLURM+Grafana show kmabee's runs as idle
 - [tt-device broker 300 s silence kill](tt-device-broker-300s-silence-kill.md) — broker SIGINTs jobs silent >300 s; file-only logging shows as empty-log kernel build failures; tee to stdout
 - [Stale chip locks look like a container](stale-chip-locks-look-like-container.md) — dead-PID /dev/shm locks after a killed run; kill -0 the owner, glx_reset + rm locks; on c03u08 the lock files are akhan-owned so rm fails and stock waitchips reset-loops: use the runs_sasha/env.sh override
@@ -43,7 +30,6 @@
 - [Kernel globals must be trivially initialized](kernel-globals-trivial-init.md) — struct with member initializers as a kernel global = JIT error on every program; canary any kernel edit before a long queue
 - [Kernel edits break queued runs](kernel-source-edits-break-queued-runs.md) — kernels JIT at run start; edit as patches mid-queue; git rebase/checkout in the shared tree also counts, use plumbing; discarded if-constexpr still compiles
 - [pre-commit stashes unstaged work](precommit-stashes-unstaged-work.md) — a killed first commit hides your uncommitted changes in ~/.cache/pre-commit; plus black version skew; sparse worktree without pyproject.toml = black at 88 cols
-- [Never edit a running bash script](never-edit-a-running-bash-script.md) — bash reads by file offset; a valid edit mid-run throws a phantom syntax error
 - [Cross-worktree pytest sys.path trap](cross-worktree-pytest-syspath-trap.md) — rootdir beats PYTHONPATH; run from the tree you mean, witness models/ttnn __file__, block on free devices; kernels resolve from cwd first — sparse-checkout a Python-only worktree
 - [tt-metal push routes](tt-metal-push-routes.md) — SSH needs the forwarded SSO-authorized agent key (on-disk key fails SAML); HTTPS gh token lacks workflow scope (pushed range touching workflows is refused); SAML flips per box/day, probe with one real push; gate CI dispatch on ls-remote
 - [tt-metal PR body edits](tt-metal-pr-body-edits.md) — edit the live body; a bot appends CI Status and rewrites the body on every push and right after gh pr create
@@ -57,7 +43,6 @@
 - [Blaze prefill CI time budget](blaze-prefill-ci-time-budget.md) — 479/488 min used; budget, not code, gates a new model leg
 - [Host-only model tests have no CI home](host-only-model-tests-have-no-ci-home.md) — tests/torch/ in zero rows; models team has no cpu_medium grant
 - [Deepseek collection check](deepseek-collection-check.md) — 28346 expected; run it against an unbuilt checkout, and the 3 traps (32 chips per run, no node ids, stale board)
-- [Sourcing bashrc gives GH_TOKEN, not an agent](bashrc-sourcing-gh-token.md) — gh token is above the interactive guard (line 7) so `source ~/.bashrc` DOES auth gh in the Bash tool; fixagent is below it; gh auth is per-machine via dotfiles; `bash -ic fixagent` then export SSH_AUTH_SOCK gets the agent; no forwarded agent at all = push personal repos over HTTPS via gh credential helper
 
 ## Profiling and measurement method
 - [Tracy profiling on tt-metal](tracy-profiling-tt-metal.md) — no rebuild needed; 4 traps that give wrong/empty results silently
@@ -131,7 +116,6 @@
 - [Reload-ring mid-walk stalls](reload-ring-mid-walk-stalls.md) — 2 of 4 runs stopped mid-`_drive` with no error; check liveness FIRST, and why rank-silence is not a symptom
 - [tt-d-gen prefill migration is prebuilt](ttdgen-prefill-migration-prebuilt.md) — items 1-3 are verify-not-build; the chunk-table contract is 4 fields; d-gen main has no migration
 - [Gemma4 data on /mnt/weka](gemma4-weka-paths.md) — TT_CACHE_PATH + PREFILL_TRACE_DIR Weka paths (done 2026-10-02); root-owned, ask storage to refresh; cold PCC 26.6→12.5 min
-- [PR labels: no triage labels](pr-labels-no-triage.md) — topic labels only (perf, model: gemma-4); never set pr-priority / pr-risk / pr-complexity
 - [Shared kernel sources across ops](shared-kernel-sources-across-ops.md) — rotary_embedding_llama compute kernel is also built by rotary_embedding_indexed; grep path constants before changing a kernel arg contract
 - [Power tier decides which measurement is valid](bh-galaxy-power-tier-measurement-validity.md) — 75W box (c01u08, c01u02): full clock ~40s then −26%; read power1_max in sysfs first; 256k inflates +20% but layer profiles match a 190W box to 0.03%; long-run A/B deltas are the trap
 - [Mistral4 TP4 perf A/B 10-05](mistral4-tp4-perf-compare-1005.md) — baseline vs Asif vs Alina branches + harness; asif -1.0% not -2.95%; Alina/local-disk runs still unmeasured

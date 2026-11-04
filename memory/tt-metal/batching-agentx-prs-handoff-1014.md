@@ -9,4 +9,4 @@ On 2026-10-14 Kyle chose to split `kmabee/gemma4-batching-main` (main 836bf0b + 
 
 **Why:** the PoC was re-validated on main but is one big branch; reviewers need small PRs. Sasha (10-14) wants the AgentX tool checked in with one very terse commands-only .md, no internals.
 
-**How to apply:** one fresh worktree per PR; draft issue/PR MDs in debug-docs and show Kyle before raising. Related: [[batching-poc-session-1010]], [[gemma4-batching-poc-traps]], [[ask-before-opening-prs]].
+**How to apply:** one fresh worktree per PR; draft issue/PR MDs in debug-docs and show Kyle before raising. Related: [[batching-poc-session-1010]], [[gemma4-batching-poc-traps]], CLAUDE.md ("never open a PR without asking").

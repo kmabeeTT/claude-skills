@@ -12,4 +12,4 @@ On boxes with the tt-device-mcp broker (bh-glx-120-b07u08, 2026-11-03), device j
 
 A wrapper that sends pytest output only to a file (`>> $log 2>&1`) gets killed at exactly t+300 s. The SIGINT lands mid kernel-JIT, so the visible symptom is `TT_THROW: trisc2 build failed. Log:` with an **empty** compiler log and no .o file — it looks like a toolchain/PCH race or OOM, but the same compile command succeeds by hand.
 
-**How to apply:** always `tee` job output to stdout with `PYTHONUNBUFFERED=1` (runs_fork_1030/devjob_1103b.sh does this). The broker env file also needs `PYTHON_ENV_DIR` when the worktree has no python_env. A 32/32 "claimed" from tt-devs.sh with a dead lock PID is normal there; trust `tt_device_queue_status`. Related: [[pause-device-work-when-alloc-lost]].
+**How to apply:** always `tee` job output to stdout with `PYTHONUNBUFFERED=1` (runs_fork_1030/devjob_1103b.sh does this). The broker env file also needs `PYTHON_ENV_DIR` when the worktree has no python_env. A 32/32 "claimed" from tt-devs.sh with a dead lock PID is normal there; trust `tt_device_queue_status`. Related: CLAUDE.md ("Shared TT boxes: lost allocation").

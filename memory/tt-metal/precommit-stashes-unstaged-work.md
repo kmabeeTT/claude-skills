@@ -18,7 +18,7 @@ tool's 2-minute default. The kill lands **after** the stash and **before** the r
 - unstaged work is gone from the working tree, recoverable only from
   `~/.cache/pre-commit/patch*` via `git apply <patch>`.
 
-Nearly lost a local uncommitted fix this way on 2026-09-03.
+Nearly lost a local uncommitted fix this way on 2026-09-03. (The general rule is in CLAUDE.md, "Claude Code quirks here"; the rest of this note is tt-metal specific.)
 
 Two further gotchas in this repo:
 - **Hooks rewrite files.** Never let pre-commit run while a device job is executing one of the

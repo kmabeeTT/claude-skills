@@ -12,4 +12,4 @@ tt-metal's two gh-aw Skills reviewers (`tenstorrent-skills-reviewer.md`, `mattpo
 
 The local replacement, built 2026-10-17, is `~/claude-skills/tt-pr-skills-review/` (`prepare.py` stages the pinned skills + pre-fetched data + adapted prompt per reviewer; then run one Sonnet subagent per PROMPT.md). Runs go to `~/.cache/tt-pr-skills-review/runs/`. Its first run on the batching PR 1 found a real uint32 wrap in the row-window bounds check.
 
-Kyle's 10-17 plan: handle the local skills review + the Copilot review + CI on the draft head, then undraft. See [[batching-prs-maintenance-handoff-1017]], [[ask-before-opening-prs]].
+Kyle's 10-17 plan: handle the local skills review + the Copilot review + CI on the draft head, then undraft. See [[batching-prs-maintenance-handoff-1017]], CLAUDE.md ("never open a PR without asking").

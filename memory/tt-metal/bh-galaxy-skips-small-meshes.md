@@ -12,4 +12,4 @@ On bh-glx boxes, an op test's `pytest.param((2, 2) or (2, 4), marks=pytest.mark.
 
 **Why:** pytest's summary line just says "N skipped", which reads like "shapes this box lacks" and hides that the multi-chip case never ran.
 
-**How to apply:** before claiming a multi-chip result from a Galaxy op-test run, grep the log for `SKIPPED [` reasons (`-rs`). To get multi-chip coverage on a Galaxy, add an 8x4 param. Also check the CI selector: L2 `dp_op_unit_tests` (tests/pipeline_reorg/ops_unit_tests.yaml) keeps only `2x4` cases for `update_padded_kv_cache` / `rotary_embedding_indexed`, so a new test without a 2x4 id gets no CI. See [[ci-status-only-when-verified]].
+**How to apply:** before claiming a multi-chip result from a Galaxy op-test run, grep the log for `SKIPPED [` reasons (`-rs`). To get multi-chip coverage on a Galaxy, add an 8x4 param. Also check the CI selector: L2 `dp_op_unit_tests` (tests/pipeline_reorg/ops_unit_tests.yaml) keeps only `2x4` cases for `update_padded_kv_cache` / `rotary_embedding_indexed`, so a new test without a 2x4 id gets no CI. See CLAUDE.md ("never write PASSED until gh shows it").

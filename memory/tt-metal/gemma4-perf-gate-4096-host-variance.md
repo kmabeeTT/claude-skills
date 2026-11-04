@@ -12,4 +12,4 @@ metadata:
 
 **Why:** Kyle (2026-10-15) chose to leave it alone for now: rerun failed jobs on PRs and reopen #60461 only if it shows up on main.
 
-**How to apply:** a 4096-only "faster than min" gate failure on a PR is this, not a regression: rerun the failed jobs (`gh run rerun <id> --failed`). If a main/nightly run shows it, propose reopening #60461 with the run, host and cells. Related: [[ci-status-only-when-verified]].
+**How to apply:** a 4096-only "faster than min" gate failure on a PR is this, not a regression: rerun the failed jobs (`gh run rerun <id> --failed`). If a main/nightly run shows it, propose reopening #60461 with the run, host and cells. Related: CLAUDE.md ("never write PASSED until gh shows it").

@@ -2,6 +2,21 @@
 
 Operational lessons to avoid re-paying time already spent. Keep this lean.
 
+## Where notes go (rules and memories)
+Everything Claude saves goes in the claude-skills repo (`~/claude-skills` ->
+`/data/kmabee/helpers/claude-skills`), in exactly one place. Pick the place yourself; don't wait to be asked.
+- **Applies in any project** (how Kyle wants work done, git / PR / doc conventions, shell hygiene, box and
+  cluster facts): this file, in the matching section, as one bullet with its why. Never auto-memory, even
+  when the current project has a memory dir: that is how a rule learned in one repo goes missing in the rest.
+- **About one repo** (its state, quirks, handoffs, measured results): that project's auto-memory dir. It must
+  be a symlink into `memory/<dir>/` of the repo: check `readlink -f <memory dir>`. If it isn't, add the
+  project key to `memory/PROJECTS` and run `./install.sh` (`--force` if a real dir is in the way; it merges
+  the notes in first), then write.
+- **Before writing,** grep `CLAUDE.md` and `memory/*/` for the topic and update the entry that exists.
+- **After writing,** commit in claude-skills (`CLAUDE.md: ...` / `memory: ...`), one commit per topic, staging
+  only your own paths, since other sessions write there at the same time. Push when the session's notes are
+  done, or let `sync-all-repos` do it.
+
 ## Working conventions (Kyle)
 - **Never open a PR, even a draft, without asking.** Pushing the branch and writing the description to a file is fine.
 - **MD for GitHub:** no hard wrapping (one line per paragraph); drafted replies go under a bold heading, never `> `-quoted.
@@ -9,18 +24,30 @@ Operational lessons to avoid re-paying time already spent. Keep this lean.
   L2 nightly dispatch skips every test and still goes green).
 - **No `rm -rf` / `rm -f` in run commands;** use fresh timestamped paths and unique names instead.
 - **Never edit a running bash script** — bash reads by offset, so the live run dies on a phantom syntax error.
+  That includes drivers several levels up. Edit between runs, or copy to a new path for the next invocation.
 - **Before `kill`, confirm the PID's cmdline matches your own run.** Other Claude sessions run as the same UID; visible ≠ mine.
+  Prefer killing the process group you launched (`setsid`, record the PGID). Another session's "done" marker
+  file says nothing about what is running now.
 - ALL_CAPS filenames for living reference docs (runbooks, trackers); snake_case for one-off records.
+- **Docs:** session, handoff and findings docs get one canonical copy, in `~/debug-docs/<topic>/`; two copies
+  drift. Edit doc repos (debug-docs, prefill-docs) in the checkout itself, on a branch, never in a worktree
+  elsewhere: Kyle can't find worktrees.
 - debug-docs: commit locally, push per milestone/topic, not per tracker tweak. **prefill-docs: never
   push without Kyle's OK.**
 - **Once a PR is out of draft: no force-pushes.** All feedback goes in one commit on top; show Kyle the
   diff and the planned replies before pushing or replying. Drafts can be amended and force-pushed with lease.
 - **Don't name or @-tag people in issue/PR text without asking;** refer to roles. PR labels: topic only,
-  never `pr-priority` / `pr-risk` / `pr-complexity`.
+  never `pr-priority` / `pr-risk` / `pr-complexity`. Issue labels: copy the closest sibling issue's.
 - **Questions Kyle forwards to another team: check every premise in our code first,** and drop any the code or
   docs already answer. Ask only what decides the current work. Give the draft in a message of its own, never
   between tool calls. (A tt-d-gen draft once assumed the prefill worker samples the first token; there the decode
   worker does.)
+- **Reaching Kyle.** He chats with Claude over the Telegram channel plugin. When an unattended run is blocked
+  on his call, send with `/data/kmabee/runs_ringsdpa/tg_send.sh "msg"` and poll `~/scripts/tg_read.sh --wait N`
+  instead of stopping; a reply there is his answer. Both read `~/dotfiles/.tt-telegram.env` (override with
+  `TELEGRAM_ENV_FILE`). Slack (claude.ai connector) is only for messages to teammates: show Kyle the exact text
+  first. `slack_send_message` adds a "Sent using @claude" footer that can't be removed, so use
+  `slack_send_message_draft` if he wants none. His self-DM is `DSZ9BLRK6`.
 
 ## TT serving servers (tt-inference-server / tt-media-server + tt-xla)
 - **Launch must run from the tt-xla venv**, because `venv/activate` and `TT_METAL_HOME`
@@ -46,13 +73,8 @@ Operational lessons to avoid re-paying time already spent. Keep this lean.
   `address already in use` on relaunch leaves an **orphan EngineCore holding the device**.
 - **Find/kill a process stuck holding a TT device** (next run can't acquire the chip):
   - Who holds it: `fuser -v /dev/tenstorrent/*` or `for d in /dev/tenstorrent/*; do echo "$d"; fuser "$d"; done`. Confirm which device a PID holds with `ls -l /proc/<pid>/fd | grep tenstorrent`.
-  - **Since 2026-09-15, empty output does NOT mean the device is free** — only that *you*
-    aren't holding it. A `dev-sec` hardening baseline mounts `/proc` with `hidepid=2`, so
-    `ps`/`fuser`/`pkill` see only your own PIDs and another user's `EngineCore` on that chip
-    is invisible. If a device won't acquire but `fuser` shows nothing, suspect an unseen
-    other-user holder instead of debugging tt-xla/tt-metal. Needs root to fix; the ask is
-    `hidepid=2,gid=slurmusers` (the role's supported escape hatch) or `hidepid=1`. Config
-    management reverts a manual remount.
+  - **Empty output does NOT mean the device is free** (hidepid, see "Shared TT boxes"): another user's
+    `EngineCore` on that chip is invisible. Suspect it before debugging tt-xla/tt-metal.
   - The holder is usually a `VLLM::EngineCore` (or a crashed pytest/python). Kill by PID: `kill -9 <pid>`; if it's a defunct/zombie, kill its parent.
   - Note: `ps` may show many `<defunct>` uvicorn zombies from prior runs — harmless; the live ones to kill are the non-defunct `VLLM::EngineCore` / `uvicorn main:app` / `python ...repro`.
 - **Env propagation:** custom env vars reach the EngineCore subprocess, but NOT the
@@ -84,6 +106,25 @@ Operational lessons to avoid re-paying time already spent. Keep this lean.
   TTFT. Use distinct per-run tokens.
 - **Don't display the requested value where a measured one can catch a shortfall** (e.g.
   show actual generated token count, not `max_tokens`) — masking it hides real bugs.
+
+## Shared TT boxes (SLURM, devices, other sessions)
+- **`/proc` is mounted `hidepid=2`** (a `dev-sec` hardening baseline, since 2026-09-15), so `ps` / `fuser` /
+  `pkill` see only your own PIDs. An empty holder check means *you* don't hold it, not that it's free; the
+  cross-user source is `~/scripts/tt-devs.sh` (UMD locks in `/dev/shm`). Fixing it needs root (the ask is
+  `hidepid=2,gid=slurmusers` or `hidepid=1`); config management reverts a manual remount.
+- **The SLURM Epilog deletes every top-level `/tmp` entry you own whenever any of your jobs ends** (a
+  `scancel`, a short `srun` finishing): tmux sockets, `/tmp/ssh-*` agent sockets, `/tmp/claude-4140`. Keep
+  long-lived things off `/tmp` (bashrc sets `TMUX_TMPDIR=~/.tmux-tmp`). It is not a tmp cleaner; aging is off.
+- **Lost allocation = stop device work.** Before each device step check that `squeue -h -u $USER -t RUNNING
+  -o '%i %N'` lists this node (`squeue -w` is broken here) and that `~/scripts/tt-devs.sh` holder lines name
+  only `kmabee`, `akhan` or `mmanzoor` (teammates who share his boxes). Anyone else, or no allocation, means
+  Kyle lost the machine. Run `~/scripts/alloc_guard.sh <queue_pid> [60]` beside every unattended queue: an
+  allocation ended an hour early once and queuing (with glx_resets) went on for 30 min on another user's job.
+- **Other Claude sessions share the checkouts, build trees and chips**, across boxes too (`/data` is NFS).
+  Before a checkout or build in a shared tree, or a device run, check `ListAgents` and any running queue's
+  lock; go through that session's lock instead of acting directly.
+- **Never run a device job in the Bash tool foreground.** The 2-minute cap SIGKILLs it mid-transfer, and on a
+  galaxy that needs a `tt-smi -glx_reset` before the next run works. `setsid nohup ... &`, then poll the log.
 
 ## Git push & CI dispatch (shared TT boxes)
 - **Two different push blockers; the rejection text tells them apart.** `Permission denied
@@ -123,6 +164,8 @@ Operational lessons to avoid re-paying time already spent. Keep this lean.
 - Squash-merge here uses the **PR title and body**, not the branch commits (`squash_merge_commit_
   title: PR_TITLE`), and GitHub appends the **PR** number to the subject. So `Fixes #N` belongs in
   the PR description, and an issue number in the PR title would collide with the appended one.
+- **`gh` auth comes from `~/.gh-token.env` (a dotfiles symlink, per box).** "Not logged into any hosts" on a new
+  box means the dotfiles aren't in place, not a bad token. Never print the token.
 
 ## PR descriptions (what reviewers praised)
 Model: tenstorrent/tt-metal#57931 ("perfect description"). The body becomes the squash commit, so:
@@ -133,7 +176,8 @@ Model: tenstorrent/tt-metal#57931 ("perfect description"). The body becomes the 
 - **One context line states the measurement once:** model, hardware + mesh, metric (traced device
   time), base sha, "same build before and after", and what each column means in bullet order.
 - **Results as bullets, one per config, same column order**: `- chunk 2048: 92.6 -> 86.6 ms (-6%),
-  5.93 -> 5.63 s, 21.4 -> 20.6 s`. % only on the headline column. No markdown tables.
+  5.93 -> 5.63 s, 21.4 -> 20.6 s`. % only on the headline column. No markdown tables (they read badly in
+  `git log`; fine in PR comments, issues and Slack).
 - **One sentence explaining the trend** (why the gain grows with chunk size), so the numbers read
   as a consequence rather than noise.
 - **Accuracy stated with its metric names and gate** (overall / RRMSE / min per-head, gate 0.91).
@@ -152,6 +196,9 @@ Model: tenstorrent/tt-metal#57931 ("perfect description"). The body becomes the 
   `~/.cache/huggingface -> /data/kmabee/hf_cache`, but `/home` is per box, so it exists only where
   it was made (not on bh-glx-120-b08u02, checked 2026-10-17): `ls -ld ~/.cache/huggingface` first. Leave `~/.cache/tt-metal-cache`
   local: it is thousands of small JIT files and NFS would slow every build.
+- **`/data` has a per-user quota that `df` doesn't show** (`quota` isn't installed). When it's full, writes fail
+  at close with "Disk quota exceeded", which surfaces as a truncated `.git/index` or a failed build. Test with
+  `dd if=/dev/zero of=/data/kmabee/.wtest bs=1M count=50`. Tracy captures (~15 GB raw each) are what filled it.
 - When `/` is full the Claude Code Bash tool cannot run **at all** (it needs `/tmp` for scratch), so
   free space from a normal shell first.
 
@@ -159,5 +206,11 @@ Model: tenstorrent/tt-metal#57931 ("perfect description"). The body becomes the 
 - **`pgrep -f` / `pkill -f` match the tool's own wrapper shell**, whose command line contains the
   entire script text. A wait-loop grepping for its own target string sees itself and never exits;
   `pkill -f <pattern>` can kill the wrapper (exit 144). Act on a PID, not a pattern.
+- **The first `git commit` in a fresh checkout can outlive the 2-minute cap** while pre-commit installs its hook
+  envs. The kill lands after pre-commit stashed unstaged changes and before it restores them, so that work then
+  exists only in `~/.cache/pre-commit/patch*` (`git apply` it back). Give that commit a long timeout.
+- **Personal repos live on NFS** at `/data/kmabee/helpers/<repo>` (claude-skills, debug-docs, prefill-docs,
+  scripts, claude-code-history), with `~/<repo>` symlinks; one working copy for every box. `dotfiles` stays a
+  local clone in `~`. NFS is not a backup: push.
 - `--collect-only` still loads the deepseek conftest and **opens all 32 chips**, so it is not safe
   to run alongside a live job. Read the test source instead.

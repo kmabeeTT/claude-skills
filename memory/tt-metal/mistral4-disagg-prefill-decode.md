@@ -17,4 +17,4 @@ Non-obvious facts worth not re-deriving:
 - Decode cost here is ~17 min/token, which is **~8000x harness overhead, not decode speed**: `TemporalPipeline` K=1 keeps one stage resident and `make_weight_provider("state_dict", cache_path=None)` re-derives all 37 stages' weights per sweep. The easy fix (untried) is blaze's write-through `MistralSmall4CacheWeightProvider`.
 - Blaze branch is now `hshah/mistral-4-emule-rebased` (tt-metal pin `d103fddd`), rebuilt and working.
 
-Full scoping (transform math, file:line anchors, ranked risks, questions for Het) is in `~/debug-docs/mistral4_prefill_planning-noissue/part2/DISAGG_PREFILL_DECODE_HANDOFF.md`. See [[mistral4-bringup-workspace]], [[debug-docs-location]].
+Full scoping (transform math, file:line anchors, ranked risks, questions for Het) is in `~/debug-docs/mistral4_prefill_planning-noissue/part2/DISAGG_PREFILL_DECODE_HANDOFF.md`. See [[mistral4-bringup-workspace]], CLAUDE.md ("Docs: one canonical copy in ~/debug-docs").
