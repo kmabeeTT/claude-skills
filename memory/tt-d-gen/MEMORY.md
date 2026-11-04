@@ -1,0 +1,2 @@
+- [QB2 machine setup](qb2-machine-setup.md) — no sudo/--no-kvm-client, P300x2, local Llama-8B pin, 4-chip health job
+- [Structured outputs work](structured-outputs-work.md) — #2212 focus, payload shapes, loopback-mask branch + next steps

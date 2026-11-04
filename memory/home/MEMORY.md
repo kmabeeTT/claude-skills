@@ -1,0 +1,3 @@
+- [SLURM Epilog wipes your /tmp](slurm-epilog-wipes-tmp.md) — job completion deletes your tmux socket; run tmux on ~/.tmux-kmabee.sock
+- [/proc hidepid hides other users](proc-hidepid-hides-other-users.md) — ps/fuser show only your own procs since 2026-09-15; empty fuser no longer means the TT device is free
+- [Slack connector usage](slack-connector-usage.md) — Slack for teammate updates/threads, Telegram for chatting with Claude; self-DM DSZ9BLRK6; footer is automatic

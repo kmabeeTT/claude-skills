@@ -1,0 +1,18 @@
+# Which Claude Code project uses which memory dir in this repo.
+#
+# Claude Code keeps auto-memory at <config>/projects/<key>/memory/, where <key> is the launch
+# directory with every '/' (and '.') turned into '-'. install.sh links each <key>'s memory/ to
+# memory/<dir>/ here, in both config dirs (CLAUDE_CONFIG_DIR and ~/.claude), so every note is in
+# git and every box sees the same notes. Several keys may share one dir (clones of one repo).
+#
+# To give a new project tracked memory: add a line, then run ./install.sh (it creates the dir).
+#
+# <key>                                      <dir under memory/>
+-data-kmabee-tt-metal                        tt-metal
+-data-kmabee-tt-metal-2                      tt-metal
+-data-kmabee-tt-metal-3                      tt-metal
+-data-kmabee-tt-d-gen                        tt-d-gen
+-home-kmabee-claude-code-history             claude-code-history
+-data-kmabee-helpers-claude-code-history     claude-code-history
+-home-kmabee                                 home
+-data-kmabee                                 home
