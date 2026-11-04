@@ -17,6 +17,10 @@ Operational lessons to avoid re-paying time already spent. Keep this lean.
   diff and the planned replies before pushing or replying. Drafts can be amended and force-pushed with lease.
 - **Don't name or @-tag people in issue/PR text without asking;** refer to roles. PR labels: topic only,
   never `pr-priority` / `pr-risk` / `pr-complexity`.
+- **Questions Kyle forwards to another team: check every premise in our code first,** and drop any the code or
+  docs already answer. Ask only what decides the current work. Give the draft in a message of its own, never
+  between tool calls. (A tt-d-gen draft once assumed the prefill worker samples the first token; there the decode
+  worker does.)
 
 ## TT serving servers (tt-inference-server / tt-media-server + tt-xla)
 - **Launch must run from the tt-xla venv**, because `venv/activate` and `TT_METAL_HOME`
