@@ -29,3 +29,4 @@ Nov 4 late: sleeping mask threads folded into PR A's seam commit (no knob; MaskW
 
 **Why:** grounding for the adapter translation step.
 **How to apply:** start structured-outputs sessions from the context doc; see [[qb2-machine-setup]] for running things.
+Nov 5: PR A test gaps closed (disagg first-token test in test_kv_disagg, length-cut tests, adapter length + prefill-leg tests). Tips: wip 64c1101c, affinity 38c5fc09, benches def17342 (old tagged so-pre-gaps-*). GLM-5.3 is served by models/glm-5.2/ on main (configs say 5.2/5.3); our 'only glm-5.2 exists' was wrong. Manager feedback notes live only in the briefing and bh_glx_dev_handoff.md (local debug-docs commit, unpushed): keep them out of the shared status doc / status.md.
