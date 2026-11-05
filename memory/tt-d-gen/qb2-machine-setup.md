@@ -19,3 +19,5 @@ Host qb2-120-p02t05: 4x Blackhole p300c (2x P300 cards, tt-metal SKU `bh_quietbo
 
 **Why:** discovered during the 2026-11-02 setup session; saves re-deriving.
 **How to apply:** use these defaults when building/running on this host; see [[structured-outputs-work]].
+
+Running suites over a non-interactive `ssh qb2-120-p02t05` (e.g. from a Galaxy session): `ctest` resolves to the system 4.0.2, which fails every tt-d-gen build tree with `Unknown CMake command "discover_tests"` (the trees were configured by the toolchain cmake). Put `/opt/ttmlir-toolchain/venv/lib/python3.12/site-packages/cmake/data/bin` first on PATH. Judge a run by the "tests passed out of N" counts, never by a driver's printed rc.
