@@ -16,3 +16,5 @@ On each of a Galaxy's 4 PCIe roots, one chip is Gen4 x8 (bus 06/46/86/c6; device
 
 **Why:** a fresh Galaxy session spent its setup time rediscovering all of this.
 **How to apply:** for Galaxy device or bench runs from QB2's trees, use the container wrapper, a BDF for the chip, and an x8 chip for mask throughput.
+
+Nov 5 (b09u08): never run two chip test containers at once. Socket ids (`dgen_h2d_<pid>_N` in /dev/shm) are keyed on the PID, containers share /dev/shm (`--ipc=host`) but each has its own PID namespace, so two containers can pick the same id: one test then waits forever for its descriptor (AbortUnderConcurrency timed out at 600 s). Two ctests on one build dir also double-register gtest discovery. /home is per box: the container venv's interpreter (`~/.local/share/uv/python/cpython-3.12.12`) must be installed on each host (`uv python install 3.12.12`). The 24.04 image must be pulled per host by digest. Same chip layout as b08u02: device 5 = x8 `0000:06:00.0`, device 4 = x1.

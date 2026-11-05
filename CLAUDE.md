@@ -119,7 +119,7 @@ Everything Claude saves goes in the claude-skills repo (`~/claude-skills` ->
   -o '%i %N'` lists this node (`squeue -w` is broken here) and that `~/scripts/tt-devs.sh` holder lines name
   only `kmabee`, `akhan` or `mmanzoor` (teammates who share his boxes). Anyone else, or no allocation, means
   Kyle lost the machine. Run `~/scripts/alloc_guard.sh <queue_pid> [60]` beside every unattended queue: an
-  allocation ended an hour early once and queuing (with glx_resets) went on for 30 min on another user's job. Device work inside a docker container shows up in `tt-devs.sh` as `(exited - stale lock) user=-` (the PIDs live in the container's namespace), so the guard strikes on your own run: allow `-` (`ALLOW_USERS="akhan mmanzoor -"`) for container queues.
+  allocation ended an hour early once and queuing (with glx_resets) went on for 30 min on another user's job. Device work inside a docker container shows up in `tt-devs.sh` as `(exited - stale lock) user=-` (the PIDs live in the container's namespace), so the guard strikes on your own run: allow `-` (`ALLOW_USERS="akhan mmanzoor -"`) for container queues. A container's in-namespace PID can also match a host kernel thread, so your own run shows as `kworker ... user=root ... held ~239h`: add `root` too (`ALLOW_USERS="akhan mmanzoor - root"`), after checking the chip is the one your queue uses.
 - **Other Claude sessions share the checkouts, build trees and chips**, across boxes too (`/data` is NFS).
   Before a checkout or build in a shared tree, or a device run, check `ListAgents` and any running queue's
   lock; go through that session's lock instead of acting directly.
