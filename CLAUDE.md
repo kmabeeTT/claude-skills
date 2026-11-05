@@ -123,6 +123,9 @@ Everything Claude saves goes in the claude-skills repo (`~/claude-skills` ->
 - **Other Claude sessions share the checkouts, build trees and chips**, across boxes too (`/data` is NFS).
   Before a checkout or build in a shared tree, or a device run, check `ListAgents` and any running queue's
   lock; go through that session's lock instead of acting directly.
+- **Ask Kyle before running anything on a machine other than the session's own** (`ssh <host> ...`: builds,
+  tests, chip runs), and say what will run there. He wants a heads-up and to approve it; a QB2 re-test once
+  ran over ssh from a Galaxy session without one.
 - **Never run a device job in the Bash tool foreground.** The 2-minute cap SIGKILLs it mid-transfer, and on a
   galaxy that needs a `tt-smi -glx_reset` before the next run works. `setsid nohup ... &`, then poll the log.
   `$!` after `setsid nohup X &` is setsid's own PID when it forks, and it exits at once: an `alloc_guard.sh $!`
