@@ -125,6 +125,8 @@ Everything Claude saves goes in the claude-skills repo (`~/claude-skills` ->
   lock; go through that session's lock instead of acting directly.
 - **Never run a device job in the Bash tool foreground.** The 2-minute cap SIGKILLs it mid-transfer, and on a
   galaxy that needs a `tt-smi -glx_reset` before the next run works. `setsid nohup ... &`, then poll the log.
+  `$!` after `setsid nohup X &` is setsid's own PID when it forks, and it exits at once: an `alloc_guard.sh $!`
+  then reports the queue finished and guards nothing. Take the PID from the driver's cmdline in `/proc`.
 
 ## Git push & CI dispatch (shared TT boxes)
 - **Two different push blockers; the rejection text tells them apart.** `Permission denied
