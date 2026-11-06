@@ -162,6 +162,12 @@ Everything Claude saves goes in the claude-skills repo (`~/claude-skills` ->
   and tag the overwritten remote tip first so it stays recoverable past reflog expiry.
 - **Verify the push landed before dispatching CI against it** — `git ls-remote` sha == local sha.
   A rejected push plus a fired `gh workflow run` silently tests stale remote content.
+- **Stacked PR whose lower PR just merged: retarget to `main` BEFORE pushing the rebased head.** Pushing a head
+  rebased onto new main while the PR still targets the old stack branch makes the diff, for a few seconds, every
+  main commit since that branch: CODEOWNERS auto-requested 78 reviewers on #61265 (2026-11-06), and removing the
+  requests can't unsend the notifications. The `pull_request` static checks (`check-doc`, `check-spdx-licenses`,
+  `check-metal-kernel-count`) also only start on a push to a main-based PR, and a retarget is not a push, so the
+  PR then can't be queued. Order: `gh pr edit N --base main`, check it took, then push.
 - **A branch that conflicts with its base makes GitHub skip every `pull_request` workflow.** It
   cannot build `refs/pull/N/merge`, so PR Gate / Sanity / pre-commit never run, while
   `pull_request_target` ones still do. It presents as "CI mysteriously never ran", never as a
