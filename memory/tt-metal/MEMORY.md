@@ -17,7 +17,7 @@
 - [/data quota and tracy captures](data-quota-tracy-captures.md) — per-user quota; a capture is ~15 GB; truncated .git/index = quota; trim profiler/ after each capture
 - [/data cleanup 10-10: symlinked copies](data-cleanup-1010-symlinked-copies.md) — Mistral checkpoint, gemma HF hub, Mistral 8x4 cache are now read-only symlinks to Weka//mnt; mesh8x1/4x8 gemma caches and blaze weight cache deleted
 - [/data checkout venv $HOME pin](data-checkout-venv-home-pin.md) — dangling python_env on a second box: repoint at /usr/bin/python3.10 (uv-python is gone); same for CMakeCache and stale PCH
-- [b03u08 device 24 is faulty](bh-glx-b02u08-dev16-dead.md) — b05u02 dev 24 dead too (10-26); repeatable: run hangs at first traced chunk BEFORE any reset, then POST_RESET fails on dev 24; b02u08 dev 16 same; arm a stall detector, lspci is not a health check
+- [b03u08 device 24 is faulty](bh-glx-b02u08-dev16-dead.md) — repeatable: run hangs at first traced chunk BEFORE any reset, then POST_RESET fails on dev 24; b02u08 dev 16 same; arm a stall detector, lspci is not a health check
 - [tt-triage at the stall](tt-triage-at-the-stall.md) — dispatch-timeout env runs tt-triage at the hang; a late triage misled twice; gdb host; per-replay logging makes trace hangs repeat
 - [tt_dispatch.py](tt-dispatch-tool.md) — Slurm dispatch to healthy boxes by measured power cap/rev (run --power '>=130' [--build]); guide ~/scripts/TT_DISPATCH.md
 - [tt-sbatch build time limit](tt-sbatch-build-time-limit.md) — plain sbatch needs ulimit -S -u $(ulimit -Hu) (login nproc 512 propagates); default 2 h build > cpu_only 1 h max = pends forever (PartitionTimeLimit); --build-time 01:00:00; use a dedicated checkout (build rsyncs back with --delete)
@@ -54,6 +54,7 @@
 - [Ring joint kernel-config cap + skip lockstep](ring-joint-kernel-config-buffer-cap.md) — 70,656 B program cap; opt_level=O2 frees ~30% but the JIT hash ignores opt_level (purge cache before measuring); reader/compute K skips must match on BOTH compute paths
 
 ## Gemma4 prefill
+- [Fused MM+RS: sliding o_proj only](gemma4-fused-mm-rs-sliding-oproj-only.md) — #62674 op wins only at K 2048 x >=1024 rows (8k -1.2%, 4x2k step -2.5%); loses 1.1-3.4x elsewhere; branch kmabee/gemma4-fused-oproj-rs
 - [Gemma4 8192 PCC floor source](gemma4-8192-pcc-floor-source.md) — enters at global L5 attention; fidelity, Q chunk, denominator comp, bfp4 MLP ruled out; post-attn norm hides row-scale errors
 - [Block-cyclic + #57998 validated](gemma4-block-cyclic-57998-validated.md) — Sasha's 2k/4k/8k test passes with my PR plus 2 halo slots + guard removal; #58685 part 1 (traced end) still open
 - [Small-op folds 10-23](gemma4-small-op-folds-1023.md) — all three only -0.3% at 256k now; only gather->matmul above noise (2k); FPU mul + LLK blockings: don't re-propose
