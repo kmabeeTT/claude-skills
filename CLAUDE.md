@@ -216,6 +216,10 @@ Model: tenstorrent/tt-metal#57931 ("perfect description"). The body becomes the 
 - **`/data` has a per-user quota that `df` doesn't show** (`quota` isn't installed). When it's full, writes fail
   at close with "Disk quota exceeded", which surfaces as a truncated `.git/index` or a failed build. Test with
   `dd if=/dev/zero of=/data/kmabee/.wtest bs=1M count=50`. Tracy captures (~15 GB raw each) are what filled it.
+- **Check `df -h /` before a `docker pull` on a Galaxy host.** Images land on the shared `/`, and on
+  bh-glx-120-b08u08 it had under 10 GB free (2026-11-07): one 10 GB tt-metalium pull took it to 0 and broke the Bash
+  tool. `docker rmi` the image you just pulled gives it back. Where an image is missing and `/` is tight, run on
+  a host that already has it, or ask Kyle.
 - When `/` is full the Claude Code Bash tool cannot run **at all** (it needs `/tmp` for scratch), so
   free space from a normal shell first.
 
