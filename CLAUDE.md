@@ -38,6 +38,9 @@ Everything Claude saves goes in the claude-skills repo (`~/claude-skills` ->
   diff and the planned replies before pushing or replying. Drafts can be amended and force-pushed with lease.
 - **Don't name or @-tag people in issue/PR text without asking;** refer to roles. PR labels: topic only,
   never `pr-priority` / `pr-risk` / `pr-complexity`. Issue labels: copy the closest sibling issue's.
+- **Private shorthand ("PR A/B/C/D", "sub-issue 7") is fine in Kyle's own docs, never in text others read**
+  (PR and issue bodies, Slack, docs shared with the org): there, name the PR by what it does ("the
+  mask-delivery PR", `#<mask-delivery PR>` until it has a number), or add a legend that defines the letters.
 - **A feature's open design questions go in its issue draft** (an "Open questions" section), not in the handoff
   or chat; the handoff points there. One place to answer them, and they travel with the issue when it's filed.
 - **Questions Kyle forwards to another team: check every premise in our code first,** and drop any the code or
