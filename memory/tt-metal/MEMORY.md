@@ -128,6 +128,7 @@
 - [Ring SDPA silent prefix 0](ring-sdpa-metadata-silent-prefix-fallback.md) — bad/wrapping prefix with 1 halo slot attends as prefix 0, no error; KV writer has no slot-end clamp
 - [Gemma4 mid-chunk resume](gemma4-mid-chunk-resume-1019.md) — #61878 merged 10-24; PR 5/6 rebased onto it, pushed, CI green; read debug-docs PR5_REBASE_PLAN_1023.md
 - [b08u02 devices 4/5 flaky](bh-glx-b08u02-dev4-5-flaky.md) — failed secondary bus reset, invisible to triage in 3 hangs on 10-19; reset + rerun before blaming code
+- [b09u08 single-channel links](bh-glx-b09u08-single-channel-links.md) — 8 inter-tray edges have 1 eth channel, survives glx_reset; 8x4 2-link Gemma4 runs TT_FATAL at TP RS link 1 (11-07)
 - [Gemma4 sliding SDPA fork 10-30](gemma4-sliding-sdpa-fork-handoff-1030.md) — PR 2 lanes move to a Gemma4-owned fork (PR A fork, PR B lanes); read debug-docs HANDOFF_GEMMA4_SLIDING_SDPA_FORK_1030.md
 - [Gemma4 KV 4096 host variance #64697](gemma4-kv-4096-host-variance-64697.md) — mock-256k KV fails on some CI hosts at 4096 only, diverges at layer 6 forward; read the handoff in debug-docs first
 - [ttnn build symlink missing](ttnn-build-symlink-missing.md) — `_ttnncpp.so` not found + intact build_Release = missing `build` symlink; ln -s, no rebuild
