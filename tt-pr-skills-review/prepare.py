@@ -103,7 +103,14 @@ def fetch_skill(spec):
     loc, sha = spec.rsplit("@", 1)
     owner, repo, *sub = loc.split("/")
     clone = os.path.join(CACHE, "repos", f"{owner}__{repo}@{sha[:12]}")
-    if not os.path.isdir(os.path.join(clone, ".git")):
+    # A cache dir can survive with its files gone (seen 2026-11-08: .git without HEAD, empty skill dirs), so
+    # trust it only if git agrees it is a clean checkout of `sha`; otherwise move it aside and clone again.
+    if os.path.isdir(clone):
+        head = sh(["git", "-C", clone, "rev-parse", "HEAD"], check=False).stdout.strip()
+        dirty = sh(["git", "-C", clone, "status", "--porcelain"], check=False).stdout.strip()
+        if head != sha or dirty:
+            os.rename(clone, f"{clone}.broken-{dt.datetime.now():%Y%m%d_%H%M%S}")
+    if not os.path.isdir(clone):
         os.makedirs(os.path.dirname(clone), exist_ok=True)
         tmp = f"{clone}.partial-{os.getpid()}"
         sh(["git", "clone", "-q", "--filter=blob:none", "--no-checkout", f"https://github.com/{owner}/{repo}.git", tmp])
@@ -115,12 +122,16 @@ def fetch_skill(spec):
     # `gh skill` resolves a bare name (mattpocock/skills/tdd) by searching the repo;
     # skip plugin copies so the canonical skills/ tree wins.
     name = sub[-1] if sub else repo
-    hits = []
-    for root, dirs, fs in os.walk(clone):
-        dirs[:] = [d for d in dirs if d != ".git"]
-        if os.path.basename(root) == name and "SKILL.md" in fs:
-            hits.append(root)
-    hits.sort(key=lambda p: ("/plugins/" in p, "/deprecated/" in p, len(p)))
+
+    def find_hits():
+        hits = []
+        for root, dirs, fs in os.walk(clone):
+            dirs[:] = [d for d in dirs if d != ".git"]
+            if os.path.basename(root) == name and "SKILL.md" in fs:
+                hits.append(root)
+        return sorted(hits, key=lambda p: ("/plugins/" in p, "/deprecated/" in p, len(p)))
+
+    hits = find_hits()
     if not hits:
         sys.exit(f"skill {spec}: no {name}/SKILL.md in {clone}")
     return hits[0]
