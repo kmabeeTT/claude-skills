@@ -131,5 +131,5 @@
 - [b09u08 single-channel links](bh-glx-b09u08-single-channel-links.md) — 8 inter-tray edges have 1 eth channel, survives glx_reset; 8x4 2-link Gemma4 runs TT_FATAL at TP RS link 1 (11-07)
 - [b08u08 box facts](bh-glx-b08u08-box-facts.md) — Gemma HF at /mnt/models/huggingface; / full (TT_METAL_CACHE on /data); good fabric; clean #64697 host
 - [Gemma4 sliding SDPA fork 10-30](gemma4-sliding-sdpa-fork-handoff-1030.md) — PR 2 lanes move to a Gemma4-owned fork (PR A fork, PR B lanes); read debug-docs HANDOFF_GEMMA4_SLIDING_SDPA_FORK_1030.md
-- [Gemma4 KV 4096 race #64697](gemma4-kv-4096-host-variance-64697.md) — shared halo semaphore race since #57453; fix branch kmabee/gemma4-sliding-halo-arrival-sems (PR not opened); read FINDINGS_1107.md
+- [Gemma4 KV 4096 race #64697](gemma4-kv-4096-host-variance-64697.md) — shared halo semaphore race since #57453; fix PR #64927 (opened 11-08); read FINDINGS_1107.md
 - [ttnn build symlink missing](ttnn-build-symlink-missing.md) — `_ttnncpp.so` not found + intact build_Release = missing `build` symlink; ln -s, no rebuild
