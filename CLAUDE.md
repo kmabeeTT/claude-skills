@@ -192,7 +192,11 @@ Everything Claude saves goes in the claude-skills repo (`~/claude-skills` ->
   that names `#N` adds a cross-reference to that issue, and rebases repeat it. PR descriptions can and should
   reference issues.
 - **`gh` auth comes from `~/.gh-token.env` (a dotfiles symlink, per box).** "Not logged into any hosts" on a new
-  box means the dotfiles aren't in place, not a bad token. Never print the token.
+  box means the dotfiles aren't in place, not a bad token. Never print the token. `GH_TOKEN` hides any `gh auth
+  login` in `~/.config/gh/hosts.yml`: when tenstorrent repos 403 with "re-authorize the OAuth Application" / "SAML
+  enforcement", the env token is revoked but a refreshed hosts.yml login may work. Fetch with
+  `env -u GH_TOKEN git -c credential.helper= -c credential.helper='!env -u GH_TOKEN gh auth git-credential' fetch https://...`
+  (Nov 10: the env token was revoked for the org, and the hosts.yml login Kyle had refreshed worked).
 
 ## PR descriptions (what reviewers praised)
 Model: tenstorrent/tt-metal#57931 ("perfect description"). The body becomes the squash commit, so:
