@@ -36,6 +36,9 @@ Everything Claude saves goes in the claude-skills repo (`~/claude-skills` ->
   push without Kyle's OK.**
 - **Once a PR is out of draft: no force-pushes.** All feedback goes in one commit on top; show Kyle the
   diff and the planned replies before pushing or replying. Drafts can be amended and force-pushed with lease.
+  Before a PR is opened, keep stacked branches linear (fold fixes into the commit they belong to, replay the
+  stack): Kyle prefers a force-push with lease over merge commits, even after saying "avoid force push" (Nov 10).
+  If a request seems to force a choice between the two, ask.
 - **Don't name or @-tag people in issue/PR text without asking;** refer to roles. PR labels: topic only,
   never `pr-priority` / `pr-risk` / `pr-complexity`. Issue labels: copy the closest sibling issue's.
 - **Private shorthand ("PR A/B/C/D", "sub-issue 7") is fine in Kyle's own docs, never in text others read**
