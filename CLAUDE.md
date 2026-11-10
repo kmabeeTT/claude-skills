@@ -117,6 +117,9 @@ Everything Claude saves goes in the claude-skills repo (`~/claude-skills` ->
   show actual generated token count, not `max_tokens`) — masking it hides real bugs.
 
 ## Shared TT boxes (SLURM, devices, other sessions)
+- **Exabox Galaxy hosts reach GitHub directly** (clone, fetch, push, `gh`) once `gh` is authorized on that box; don't
+  route git through a login node. `exabox` is an ssh alias in the Mac's `~/.ssh/config` only (`/home` is per box), so
+  `ssh exabox` in a handoff run on a Galaxy fails with an unresolved hostname (Nov 10).
 - **`/proc` is mounted `hidepid=2`** (a `dev-sec` hardening baseline, since 2026-09-15), so `ps` / `fuser` /
   `pkill` see only your own PIDs. An empty holder check means *you* don't hold it, not that it's free; the
   cross-user source is `~/scripts/tt-devs.sh` (UMD locks in `/dev/shm`). Fixing it needs root (the ask is
