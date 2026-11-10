@@ -20,6 +20,7 @@ Everything Claude saves goes in the claude-skills repo (`~/claude-skills` ->
 ## Working conventions (Kyle)
 - **Never open a PR, even a draft, without asking.** Pushing the branch and writing the description to a file is fine.
 - **MD for GitHub:** no hard wrapping (one line per paragraph); drafted replies go under a bold heading, never `> `-quoted.
+- **Mermaid on GitHub: no `;` in any label or note** (it is a statement separator; the diagram fails with "Parse error … got 'NEWLINE'"). Render-check before handing over: `mermaid.ink/img/<base64>` with a User-Agent header.
 - **Never write PASSED for a CI run** until `gh` shows it completed with that conclusion; count job conclusions too (a plain
   L2 nightly dispatch skips every test and still goes green).
 - **No `rm -rf` / `rm -f` in run commands;** use fresh timestamped paths and unique names instead.
