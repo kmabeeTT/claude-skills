@@ -10,7 +10,7 @@ metadata:
 
 CPU pinning for decode workers, Nov 10-11 2026, on bh-glx-120-b09u08. The findings doc that covers everything (the whole-host cost, the 0 µs mask roofline, automatic placement, design decisions, and Aleks's "one place / no config surface" feedback) is debug-docs `tt_dgen_structured_outputs-2212/cpu_pinning_findings_1111.md` (pushed in f3e14da), with the per-day reports beside it.
 
-- **Code:** local, unpushed branch `kmabee/so-auto-thread-cpus`, one commit `48f69b40` on the CPU-pinning PR head `c9116722`. It drops the `control_cpu`/`writer_cpu`/`reader_cpu` worker keys. The worker picks three idle cores on one cache (busy check from `/proc/stat`, flock claims in `/dev/shm`) and puts the mask threads on the rest of that cache. The off switch is `TT_DGEN_THREAD_CPUS=off`. The bench variant is `kmabee/so-auto-thread-cpus-bench`.
+- **Code:** local, unpushed branch `kmabee/structured-outputs-cpu-pinning-auto` (`9b6d3f6a`): PR C's stack with the change squashed into its pinning commit. PR C's branch is left as sent. Unsquashed: `kmabee/so-auto-thread-cpus` (`48f69b40` on `c9116722`), same tree. It drops the `control_cpu`/`writer_cpu`/`reader_cpu` worker keys. The worker picks three idle cores on one cache (busy check from `/proc/stat`, flock claims in `/dev/shm`) and puts the mask threads on the rest of that cache. The off switch is `TT_DGEN_THREAD_CPUS=off`. The bench variant is `kmabee/so-auto-thread-cpus-bench`.
 - **Results:** at GLM-5.3's rate it costs ~0, as today. At a 3 µs step the guided cost goes from 15-20% to 5%. The 0 µs roofline goes from 248K to ~350K masks/s.
 - **Mask-thread placement:** keeping the mask thread on the spinners' cache is what helps at fast steps; pinning the spinners alone does not.
 
