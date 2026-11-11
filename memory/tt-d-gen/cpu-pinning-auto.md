@@ -10,8 +10,10 @@ metadata:
 
 CPU pinning for decode workers, Nov 10-11 2026, on bh-glx-120-b09u08. The findings doc that covers everything (the whole-host cost, the 0 µs mask roofline, automatic placement, design decisions, and Aleks's "one place / no config surface" feedback) is debug-docs `tt_dgen_structured_outputs-2212/cpu_pinning_findings_1111.md` (pushed in f3e14da), with the per-day reports beside it.
 
-- **Code:** local, unpushed branch `kmabee/structured-outputs-cpu-pinning-auto` (`9b6d3f6a`): PR C's stack with the change squashed into its pinning commit. PR C's branch is left as sent. Unsquashed: `kmabee/so-auto-thread-cpus` (`48f69b40` on `c9116722`), same tree. It drops the `control_cpu`/`writer_cpu`/`reader_cpu` worker keys. The worker picks three idle cores on one cache (busy check from `/proc/stat`, flock claims in `/dev/shm`) and puts the mask threads on the rest of that cache. The off switch is `TT_DGEN_THREAD_CPUS=off`. The bench variant is `kmabee/so-auto-thread-cpus-bench`.
-- **Results:** at GLM-5.3's rate it costs ~0, as today. At a 3 µs step the guided cost goes from 15-20% to 5%. The 0 µs roofline goes from 248K to ~350K masks/s.
+- **Code:** local, unpushed branch `kmabee/structured-outputs-cpu-pinning-auto`: `d82f7071` (the pinning commit, which replaces PR C's `938467e2`) plus `6e6727da` (mask pages), on `ffae2f4a`. Kyle said to wait to push. All placement logic is in `engine/src/runtime/thread_cpus.{hpp,cpp}`. The worker picks the three least-loaded idle cores of one cache from a 1 s `/proc/stat` sample, claims them per core in `/dev/shm`, puts the mask threads on the rest of that cache, and has no worker keys. The off switch is `TT_DGEN_THREAD_CPUS=off`. The bench variant is `kmabee/so-auto-thread-cpus-bench`. The PR body draft is debug-docs `pr_c_auto_description.md`.
+- **Results:**
+  - **Galaxy:** at GLM-5.3's rate it costs ~0, as today. At a 3 µs step the guided cost goes from 15-20% to 5%. The 0 µs roofline goes from 248K to ~350K masks/s.
+  - **QB2:** it is even with today at realistic rates, and takes a 4-CPU budget from −3.4% to −0.8%. WEKA's light poller on CPU 1 is why the pick uses the least-loaded cores.
 - **Mask-thread placement:** keeping the mask thread on the spinners' cache is what helps at fast steps; pinning the spinners alone does not.
 
 **Why:** Aleks (code owner and manager) asked to ship pinning on by default with no new config, tested on mocks, and reverted if it regresses.
