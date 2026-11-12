@@ -2,3 +2,4 @@
 - [Structured outputs work](structured-outputs-work.md) — #2212 focus, payload shapes, loopback-mask branch + next steps
 - [Galaxy run setup](galaxy-run-setup.md) — QB2 binaries on BH Galaxy need the 24.04 container; TT_VISIBLE_DEVICES=BDF; x8 vs x1 chips
 - [CPU pinning, automatic](cpu-pinning-auto.md) — Nov 10-11 auto spinner placement branch, results, findings doc path
+- [Mask throughput](mask-throughput.md) — Nov 12 Galaxy masks/s: ~35K/core real schemas, worker ~240K, required-rate question open
