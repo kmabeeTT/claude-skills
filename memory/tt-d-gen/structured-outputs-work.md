@@ -45,3 +45,5 @@ Nov 11 03:50 UTC: RAISED upstream (Kyle's OK): fork kmabeeTT/xgrammar; mlc-ai/xg
 Nov 12: v0.2.9 + all #1043 fixes pushed as kmabeeTT/xgrammar branch v0.2.9-plus-1043-fixes @ 40b1b78 (was local combined-1043-final); tt-d-gen can pin it via cmake/xgrammar.cmake GITHUB_REPOSITORY kmabeeTT/xgrammar + GIT_TAG <sha>.
 
 mlc-ai/xgrammar merges by squash (checked Nov 13 on #1060, #1012, #949, #710): the commit on main is the PR title + ` (#N)`, the body is the PR description reflowed to ~72 columns (markdown headings kept literally), then `---------` and the `Co-authored-by` trailers collected from the branch commits. Branch commit messages are otherwise dropped, so write the PR description as the commit message; the branch commits' `Co-Authored-By` lines still end up in main.
+
+Nov 13 ~16:50 UTC: RAISED (Kyle's OK): mlc-ai/xgrammar#1071 (issue: non-ASCII pattern, Github_medium/o46359.json), #1072 (pr-nonascii-pattern, Fixes #1071), #1073 (pr-lookahead-inherit, Refs #1071), each with a follow-up detail comment; #1043 comment links #1071. Row-cache issue, pr-parser-micro and pr-rowcache are still unfiled (order: issue, then micro, then row cache).
