@@ -12,6 +12,8 @@ Mask throughput on a Galaxy host, measured Nov 12 2026 on bh-glx-120-b08u02 (EPY
 - **GLM rates:** typical schemas cost ≤0.7% (steady state). The four slow schemas cost 2-15% even when no mask is late. A second mask thread removes late masks; more threads do nothing.
 - **Required rate:** each Blaze token page carries one user, so masks/s = guided tok/s ≤ the model's decode rate. For GLM-5.3 on SC20 (32 slots, 80 × 69 µs) that is ≤5.8K/s (14.5K/s with a token every tick): one core. The voice chat's "64 users per 120 µs step, 550K/s" was never real. The open input is the decode-throughput target for later models. With the XGrammar fork it is 54K masks/s per core. The report is `mask_throughput_report_1112.md`, the page https://claude.ai/artifact/4KLX1ZbBqoSMJFcN1n5aFX, and the quick reproduction `engine/tools/mask_rate.sh` on branch `kmabee/so-maskrate-bench`.
 
+- **Nov 13 deep dive (mask memo):** 84% of a fill is the uncertain-token parser check; 82% of random-walk fills repeat an earlier mask. A memo keyed by the canonical parser state (stored as flips against the latest states' accepted-token merge), on kmabeeTT/xgrammar `v0.2.9-plus-1043-mask-memo` @ c62215e, gives `mask_rate.sh` typical 205K/core on 1 core and 4.15M on 16, masks bit-identical. Findings: debug-docs `tt_dgen_structured_outputs-2212/mask_rate_deep_dive_findings_1113.md`. Work dir `/data/kmabee/mask_deep_1113` (harness `harness/xfb.cpp`: rate / walk / replay / mrate, and `cmpwalk.py` as the correctness gate).
+
 **Why:** at standup Kyle was asked for "masks/s on a Galaxy, with real schemas, up to 16 CPUs".
 
 **How to apply:** quote per-core capacity and the tail, not the toy 0 µs roofline; derive the need from decode tok/s. Related: [[cpu-pinning-auto]], [[structured-outputs-work]].
