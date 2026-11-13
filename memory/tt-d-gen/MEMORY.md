@@ -3,3 +3,4 @@
 - [Galaxy run setup](galaxy-run-setup.md) — QB2 binaries on BH Galaxy need the 24.04 container; TT_VISIBLE_DEVICES=BDF; x8 vs x1 chips
 - [CPU pinning, automatic](cpu-pinning-auto.md) — Nov 10-11 auto spinner placement branch, results, findings doc path
 - [Mask throughput](mask-throughput.md) — Nov 12 Galaxy masks/s: ~35K/core real schemas, worker ~240K, required-rate question open
+- [Structured output tracker](structured-output-tracker.md) — top-level tracker doc for #2212; update it when statuses change
