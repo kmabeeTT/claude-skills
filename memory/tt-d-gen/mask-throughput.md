@@ -10,8 +10,8 @@ Mask throughput on a Galaxy host, measured Nov 12 2026 on bh-glx-120-b08u02 (EPY
 - **Capacity:** XGrammar fills with GLM-5.3's vocabulary scale linearly at about 33-39K masks/s per physical core. 16 cores give about 520-565K masks/s on real schemas. SMT adds about 15%. The four slow schemas (mlc-ai/xgrammar#1043) manage 7K per core.
 - **Through the worker:** about 230-245K masks/s on typical schemas, where the mock pipeline itself is the limit. Use `GUIDED_BENCH_NO_MASK_LOG=1`, or the mock's 19 KB-per-mask log under its mutex caps the worker at about 20-48K.
 - **GLM rates:** typical schemas cost ≤0.7% (steady state). The four slow schemas cost 2-15% even when no mask is late. A second mask thread removes late masks; more threads do nothing.
-- **Open:** the required rate depends on how many users Blaze GLM samples per LM-head step: one user per 69 µs tick needs 14.5K/s, 64 users per 120 µs step needs 550K/s. The device team has to answer this.
+- **Required rate:** each Blaze token page carries one user, so masks/s = guided tok/s ≤ the model's decode rate. For GLM-5.3 on SC20 (32 slots, 80 × 69 µs) that is ≤5.8K/s (14.5K/s with a token every tick): one core. The voice chat's "64 users per 120 µs step, 550K/s" was never real. The open input is the decode-throughput target for later models. With the XGrammar fork it is 54K masks/s per core. The report is `mask_throughput_report_1112.md`, the page https://claude.ai/artifact/4KLX1ZbBqoSMJFcN1n5aFX, and the quick reproduction `engine/tools/mask_rate.sh` on branch `kmabee/so-maskrate-bench`.
 
 **Why:** at standup Kyle was asked for "masks/s on a Galaxy, with real schemas, up to 16 CPUs".
 
-**How to apply:** quote per-core capacity and the tail, not the toy 0 µs roofline, and say which required-rate model is assumed. Related: [[cpu-pinning-auto]], [[structured-outputs-work]].
+**How to apply:** quote per-core capacity and the tail, not the toy 0 µs roofline; derive the need from decode tok/s. Related: [[cpu-pinning-auto]], [[structured-outputs-work]].
