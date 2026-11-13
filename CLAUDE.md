@@ -139,6 +139,7 @@ Everything Claude saves goes in the claude-skills repo (`~/claude-skills` ->
   tests, chip runs), and say what will run there. He wants a heads-up and to approve it; a QB2 re-test once
   ran over ssh from a Galaxy session without one.
 - **TSAN binaries die in docker on these hosts** (kernel 6.8 ASLR: "incompatible memory layout but was unable to disable ASLR"). The default seccomp profile blocks `personality()`, so `setarch -R` fails too. Run only the TSAN step with `--security-opt seccomp=unconfined` plus `setarch $(uname -m) -R`; the container still runs as your user.
+- **`srun` steps inherit the login host's ulimits, including `nproc` 512 on slurm-login-02** (it counts threads; the nodes allow millions). A step that starts a thread-heavy run (the Dynamo saturation harness at 64 users) then makes every new process on the node for your user fail with "fork: Resource temporarily unavailable" until it ends. Use `srun --propagate=NONE ...` (found Nov 13; SSH sessions on the node were never affected).
 - **Never run a device job in the Bash tool foreground.** The 2-minute cap SIGKILLs it mid-transfer, and on a
   galaxy that needs a `tt-smi -glx_reset` before the next run works. `setsid nohup ... &`, then poll the log.
   `$!` after `setsid nohup X &` is setsid's own PID when it forks, and it exits at once: an `alloc_guard.sh $!`
