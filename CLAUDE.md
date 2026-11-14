@@ -160,10 +160,8 @@ Everything Claude saves goes in the claude-skills repo (`~/claude-skills` ->
   `GIT_SSH_COMMAND="ssh -o IdentitiesOnly=no -o IdentityFile=/dev/null"` so the on-disk key isn't
   offered first. No forwarded agent at all: personal repos still push over HTTPS
   (`git -c credential.helper= -c credential.helper='!gh auth git-credential' push https://github.com/kmabeeTT/<repo>.git main:main`).
-- **`source ~/.bashrc` in Claude Code's Bash tool gives `gh` its token, but not an agent.**
-  `~/.gh-token.env` is sourced at line 7, above the non-interactive `return`, so `gh` works when
-  it's sourced in the same Bash call. `fixagent` and the startup agent probe are below the return,
-  so they never run. Get an agent with `bash -ic 'fixagent; echo $SSH_AUTH_SOCK'` and export the
+- **Claude Code's Bash tool gets no SSH agent from `source ~/.bashrc`.** `fixagent` and the startup
+  agent probe sit below the non-interactive `return`, so they never run. Get an agent with `bash -ic 'fixagent; echo $SSH_AUTH_SOCK'` and export the
   socket it prints, or run the loop directly:
   `for s in $(command ls -t /tmp/ssh-*/agent.* 2>/dev/null); do [ -S "$s" ] && SSH_AUTH_SOCK=$s ssh-add -l >/dev/null 2>&1 && export SSH_AUTH_SOCK=$s && break; done`
 - **Don't inherit "push is blocked" from a handoff — test it.** One `ssh-add -l` settles it.
@@ -192,12 +190,12 @@ Everything Claude saves goes in the claude-skills repo (`~/claude-skills` ->
 - **No issue numbers in commit messages,** above all on branches still being iterated: every pushed commit
   that names `#N` adds a cross-reference to that issue, and rebases repeat it. PR descriptions can and should
   reference issues.
-- **`gh` auth comes from `~/.gh-token.env` (a dotfiles symlink, per box).** "Not logged into any hosts" on a new
-  box means the dotfiles aren't in place, not a bad token. Never print the token. `GH_TOKEN` hides any `gh auth
-  login` in `~/.config/gh/hosts.yml`: when tenstorrent repos 403 with "re-authorize the OAuth Application" / "SAML
-  enforcement", the env token is revoked but a refreshed hosts.yml login may work. Fetch with
-  `env -u GH_TOKEN git -c credential.helper= -c credential.helper='!env -u GH_TOKEN gh auth git-credential' fetch https://...`
-  (Nov 10: the env token was revoked for the org, and the hosts.yml login Kyle had refreshed worked).
+- **`gh` auth is a per-box `gh auth login`, stored in `~/.config/gh/hosts.yml`** (`/home` is per box). The dotfiles
+  `GH_TOKEN` file was dropped on 2026-11-14 after its token lost org access. "Not logged into any hosts" means that
+  box was never logged in: Kyle runs `gh auth login -h github.com -p https -w -s workflow` and grants the
+  tenstorrent SSO on the authorize page. A 403 "SAML enforcement" / "re-authorize the OAuth Application" means the
+  SSO grant lapsed: rerun the login. Never print the token. A `GH_TOKEN` in the environment overrides `hosts.yml`
+  (a shell started before a change keeps the old one), so `unset GH_TOKEN` when a 403 persists after a fresh login.
 
 ## PR descriptions (what reviewers praised)
 Model: tenstorrent/tt-metal#57931 ("perfect description"). The body becomes the squash commit, so:
